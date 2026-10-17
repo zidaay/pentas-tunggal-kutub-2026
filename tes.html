@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tes Koneksi</title>
+<style>
+  body { font-family: sans-serif; padding: 1rem; max-width: 700px; margin: auto; }
+  input { width: 100%; padding: .5rem; margin-bottom: .5rem; font-family: monospace; font-size: .8rem; }
+  button { padding: .6rem 1rem; margin: .3rem .3rem .3rem 0; }
+  pre { background: #eee; padding: 1rem; white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+  <h2>Tes Koneksi ke Apps Script</h2>
+  <label>URL Apps Script:</label>
+  <input id="url" value="https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec">
+  <button onclick="tesGet()">Tes 1: GET (QRIS)</button>
+  <button onclick="tesPost()">Tes 2: POST (login)</button>
+  <pre id="out">Klik salah satu tombol.</pre>
+
+<script>
+const out = document.getElementById('out');
+const getUrl = () => document.getElementById('url').value.trim();
+
+async function tesGet() {
+  out.textContent = 'Mengirim GET...';
+  try {
+    const res = await fetch(getUrl() + '?action=getQris');
+    const text = await res.text();
+    out.textContent = 'GET BERHASIL\nStatus: ' + res.status + '\nIsi: ' + text.slice(0, 300);
+  } catch (e) {
+    out.textContent = 'GET GAGAL\n' + e.name + ': ' + e.message + '\nPanjang URL: ' + getUrl().length;
+  }
+}
+
+async function tesPost() {
+  out.textContent = 'Mengirim POST...';
+  try {
+    const res = await fetch(getUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'login', pin: '000000' })
+    });
+    const text = await res.text();
+    out.textContent = 'POST BERHASIL\nStatus: ' + res.status + '\nIsi: ' + text.slice(0, 300);
+  } catch (e) {
+    out.textContent = 'POST GAGAL\n' + e.name + ': ' + e.message + '\nPanjang URL: ' + getUrl().length;
+  }
+}
+</script>
+</body>
+</html>
