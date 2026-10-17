@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiket Saya - KUTUB 2026</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .ticket-card {
+      width: 100%;
+      max-width: 500px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .ticket-qr {
+      display: block;
+      width: min(250px, 100%);
+      height: auto;
+      margin: 20px auto;
+      padding: 12px;
+      box-sizing: border-box;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .ticket-info {
+      text-align: left;
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.12);
+      overflow-wrap: anywhere;
+    }
+
+    .ticket-info p {
+      margin: 10px 0;
+    }
+
+    .ticket-message {
+      padding: 16px;
+      border-radius: 14px;
+      margin: 16px 0;
+    }
+
+    .ticket-pending {
+      background: rgba(255,220,150,0.35);
+    }
+
+    .ticket-approved {
+      background: rgba(150,230,170,0.25);
+    }
+
+    .ticket-used {
+      background: rgba(255,150,150,0.25);
+    }
+
+    .ticket-error {
+      background: rgba(255,150,150,0.25);
+    }
+
+    .ticket-muted {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+
+    #btnRefresh {
+      width: 100%;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body class="bg-pesan">
+  <div class="bubble"
+    style="width:100px;height:100px;top:10%;left:80%;animation-duration:12s;"></div>
+  <div class="bubble"
+    style="width:70px;height:70px;top:75%;left:6%;animation-duration:15s;"></div>
+  <div class="bubble"
+    style="width:130px;height:130px;top:40%;left:-3%;animation-duration:19s;"></div>
+
+  <main class="container">
+    <div class="glass-card ticket-card">
+      <h2>Tiket Saya</h2>
+      <p class="ticket-muted">
+        Simpan halaman ini dan tunjukkan QR tiket kepada petugas saat masuk.
+      </p>
+
+      <div id="ticketContent" aria-live="polite">
+        <p>Memuat informasi tiket...</p>
+      </div>
+
+      <button type="button" id="btnRefresh" class="glass-btn">
+        Periksa Status Sekarang
+      </button>
+
+      <p class="ticket-muted" id="refreshInfo">
+        Status diperiksa secara otomatis setiap 8 detik.
+      </p>
+
+      <a href="pesan.html" class="glass-btn"
+        style="display:block;text-decoration:none;margin-top:16px;">
+        Kembali ke Halaman Pesan
+      </a>
+    </div>
+  </main>
+
+<script>
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec";
+
+const content = document.getElementById("ticketContent");
+const refreshInfo = document.getElementById("refreshInfo");
+const btnRefresh = document.getElementById("btnRefresh");
+
+const params = new URLSearchParams(window.location.search);
+let orderId = (params.get("orderId") || "").trim();
+let loading = false;
+let timer = null;
+
+function esc(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function showMessage(type, title, message) {
+  content.innerHTML = `
+    <div class="ticket-message ${type}">
+      <h3>${esc(title)}</h3>
+      <p>${esc(message)}</p>
+    </div>
+    <p class="ticket-muted">Order ID: <b>${esc(orderId)}</b></p>
+  `;
+}
+
+async function loadTicket() {
+  if (loading) return;
+  loading = true;
+  btnRefresh.disabled = true;
+
+  if (!orderId) {
+    showMessage(
+      "ticket-error",
+      "Order ID tidak ditemukan",
+      "Buka halaman ini melalui tautan tiket setelah melakukan pemesanan."
+    );
+    refreshInfo.textContent =
+      "Jika kamu sudah memesan tiket, gunakan tautan yang diberikan setelah pemesanan.";
+    loading = false;
+    btnRefresh.disabled = false;
+    return;
+  }
+
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=checkOrder&orderId=${encodeURIComponent(orderId)}`;
+    const res = await fetch(url);
+
+    if (!res.ok) throw new Error("Gagal menghubungi server.");
+
+    const data = await res.json();
+
+    if (data.error) {
+      showMessage("ticket-error", "Pesanan tidak ditemukan", data.error);
+      return;
+    }
+
+    // Tiket sudah digunakan: jangan tampilkan QR lagi
+    if (data.Digunakan === "Sudah") {
+      content.innerHTML = `
+        <div class="ticket-message ticket-used">
+          <h3>✓ Tiket Sudah Digunakan</h3>
+          <p>Tiket ini telah digunakan untuk check-in dan tidak dapat digunakan kembali.</p>
+        </div>
+        <div class="ticket-info">
+          <p>Nama: <b>${esc(data.Nama)}</b></p>
+          <p>Jenis tiket: <b>${esc(data.JenisTiket)}</b></p>
+          <p>Jumlah: <b>${esc(data.Jumlah)}</b></p>
+          <p>Order ID: <b>${esc(data.OrderID)}</b></p>
+          <p>Ticket ID: <b>${esc(data.TicketID)}</b></p>
+          ${data.WaktuCheckin
+            ? `<p>Waktu check-in: <b>${esc(data.WaktuCheckin)}</b></p>`
+            : ""}
+        </div>
+      `;
+      refreshInfo.textContent = "Status tiket sudah digunakan.";
+      return;
+    }
+
+    // Pembayaran belum disetujui admin
+    if (data.Status !== "Verified") {
+      showMessage(
+        "ticket-pending",
+        "Tiket Sedang Diproses",
+        "Pesananmu sudah diterima. Silakan tunggu admin memverifikasi pembayaran."
+      );
+      return;
+    }
+
+    // Pesanan sudah disetujui, tetapi data QR harus tersedia
+    if (!data.TicketID || !data.QRUrl) {
+      showMessage(
+        "ticket-pending",
+        "Tiket Sedang Diproses",
+        "Pembayaran terverifikasi, tetapi data tiket belum tersedia. Silakan periksa kembali sebentar lagi."
+      );
+      return;
+    }
+
+    // Tiket terverifikasi dan belum digunakan
+    content.innerHTML = `
+      <div class="ticket-message ticket-approved">
+        <h3>✓ Tiket Terverifikasi</h3>
+        <p>Pembayaran telah disetujui. Tunjukkan QR ini kepada petugas saat masuk.</p>
+      </div>
+
+      <img class="ticket-qr"
+        src="${esc(data.QRUrl)}"
+        alt="QR Code Tiket"
+        referrerpolicy="no-referrer">
+
+      <div class="ticket-info">
+        <p>Nama: <b>${esc(data.Nama)}</b></p>
+        <p>Jenis tiket: <b>${esc(data.JenisTiket)}</b></p>
+        <p>Jumlah: <b>${esc(data.Jumlah)}</b></p>
+        <p>Order ID: <b>${esc(data.OrderID)}</b></p>
+        <p>Ticket ID: <b>${esc(data.TicketID)}</b></p>
+        <p>Status: <b>Belum digunakan</b></p>
+      </div>
+
+      <p class="ticket-muted">
+        QR ini hanya untuk tiketmu. Jangan bagikan kepada orang lain.
+      </p>
+    `;
+
+    refreshInfo.textContent =
+      "Status tiket diperbarui otomatis setiap 8 detik.";
+
+  } catch (err) {
+    showMessage(
+      "ticket-error",
+      "Gagal Memuat Tiket",
+      "Periksa koneksi internetmu lalu tekan tombol Periksa Status Sekarang."
+    );
+  } finally {
+    loading = false;
+    btnRefresh.disabled = false;
+  }
+}
+
+btnRefresh.addEventListener("click", loadTicket);
+
+loadTicket();
+timer = setInterval(loadTicket, 8000);
+</script>
+</body>
+</html>
