@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pesan Tiket - KUTUB 2026</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-pesan">
+  <div class="bubble" style="width:100px;height:100px;top:10%;left:80%;animation-duration:12s;"></div>
+  <div class="bubble" style="width:70px;height:70px;top:75%;left:6%;animation-duration:15s;"></div>
+
+  <main class="container">
+    <div class="glass-card" style="width:100%;max-width:500px;">
+      <h2>Form Pemesanan Tiket</h2>
+      <form id="orderForm">
+        <div class="form-group">
+          <label>Nama Lengkap</label>
+          <input type="text" id="nama" required>
+        </div>
+        <div class="form-group">
+          <label>No. WhatsApp</label>
+          <input type="text" id="nohp" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" required>
+        </div>
+        <div class="form-group">
+          <label>Jenis Tiket</label>
+          <select id="jenisTiket">
+            <option value="Early Bird">Early Bird - Rp30.000</option>
+            <option value="Bundling">Bundling - Rp55.000/paket</option>
+            <option value="Reguler">Reguler - Rp40.000</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Jumlah</label>
+          <input type="number" id="jumlah" value="1" min="1" required>
+        </div>
+        <div class="form-group">
+          <label>Upload Bukti Bayar QRIS</label>
+          <input type="file" id="bukti" accept="image/*" required>
+        </div>
+        <button type="submit" class="glass-btn" style="width:100%;">Kirim Pesanan</button>
+      </form>
+      <div id="orderStatus"></div>
+    </div>
+
+    <div class="glass-card" style="width:100%;max-width:500px;">
+      <h2>Cek Status Tiket</h2>
+      <div class="form-group">
+        <label>Order ID</label>
+        <input type="text" id="cekOrderId" placeholder="contoh: ORD-AB12CD34">
+      </div>
+      <button id="btnCek" class="glass-btn" style="width:100%;">Cek Status</button>
+      <div id="cekResult"></div>
+    </div>
+  </main>
+
+<script>
+const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_APPS_SCRIPT_KAMU";
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('orderForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const statusDiv = document.getElementById('orderStatus');
+  statusDiv.innerHTML = '<p>Mengirim pesanan...</p>';
+
+  const buktiFile = document.getElementById('bukti').files[0];
+  const buktiBase64 = await fileToBase64(buktiFile);
+
+  const payload = {
+    action: 'order',
+    nama: document.getElementById('nama').value,
+    nohp: document.getElementById('nohp').value,
+    email: document.getElementById('email').value,
+    jenisTiket: document.getElementById('jenisTiket').value,
+    jumlah: document.getElementById('jumlah').value,
+    buktiBase64: buktiBase64,
+    buktiMime: buktiFile.type
+  };
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    statusDiv.innerHTML = `<div class="status-msg status-ok">
+      Pesanan berhasil dikirim! Order ID kamu: <b>${data.orderId}</b><br>
+      Simpan Order ID ini untuk cek status tiketmu nanti.
+    </div>`;
+    e.target.reset();
+  } catch (err) {
+    statusDiv.innerHTML = `<div class="status-msg status-err">Gagal mengirim: ${err}</div>`;
+  }
+});
+
+document.getElementById('btnCek').addEventListener('click', async () => {
+  const orderId = document.getElementById('cekOrderId').value.trim();
+  const resultDiv = document.getElementById('cekResult');
+  if (!orderId) return;
+  resultDiv.innerHTML = '<p>Mencari...</p>';
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=checkOrder&orderId=${encodeURIComponent(orderId)}`);
+    const data = await res.json();
+    if (data.error) {
+      resultDiv.innerHTML = `<div class="status-msg status-err">${data.error}</div>`;
+      return;
+    }
+    if (data.Status === 'Verified') {
+      resultDiv.innerHTML = `<div class="status-msg status-ok">
+        Status: <b>Terverifikasi ✅</b><br>
+        Ticket ID: <b>${data.TicketID}</b><br>
+        <img src="${data.QRUrl}" alt="QR Tiket" style="margin-top:1rem;border-radius:12px;">
+      </div>`;
+    } else {
+      resultDiv.innerHTML = `<div class="status-msg" style="background:rgba(255,220,150,0.4);">
+        Status: <b>${data.Status}</b> — tunggu admin memverifikasi pembayaranmu.
+      </div>`;
+    }
+  } catch (err) {
+    resultDiv.innerHTML = `<div class="status-msg status-err">Gagal cek status: ${err}</div>`;
+  }
+});
+</script>
+</body>
+</html>
