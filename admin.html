@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - KUTUB 2026</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-admin">
+  <main class="container">
+    <div class="glass-card" style="width:100%;">
+      <h2>Dashboard Admin Ticketing</h2>
+      <button id="btnLoad" class="glass-btn">Muat Daftar Pesanan</button>
+      <div id="tableWrap" style="margin-top:1.5rem;overflow-x:auto;"></div>
+    </div>
+  </main>
+
+<script>
+const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_APPS_SCRIPT_KAMU";
+
+async function loadOrders() {
+  const wrap = document.getElementById('tableWrap');
+  wrap.innerHTML = '<p>Memuat...</p>';
+  const res = await fetch(`${APPS_SCRIPT_URL}?action=listOrders`);
+  const data = await res.json();
+  if (!data.orders || data.orders.length === 0) {
+    wrap.innerHTML = '<p>Belum ada pesanan.</p>';
+    return;
+  }
+  let html = `<table class="admin-table"><tr>
+    <th>Order ID</th><th>Nama</th><th>Tiket</th><th>Jml</th><th>Bukti</th><th>Status</th><th>Aksi</th>
+  </tr>`;
+  data.orders.forEach(o => {
+    html += `<tr>
+      <td>${o.OrderID}</td><td>${o.Nama}</td><td>${o.JenisTiket}</td><td>${o.Jumlah}</td>
+      <td><a href="${o.BuktiBayarURL}" target="_blank">Lihat</a></td>
+      <td>${o.Status}${o.Status === 'Verified' ? ' (' + o.TicketID + ')' : ''}</td>
+      <td>${o.Status === 'Pending' ? `<button class="glass-btn" onclick="verify('${o.OrderID}')">Verifikasi</button>` : '✅'}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  wrap.innerHTML = html;
+}
+
+async function verify(orderId) {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'verify', orderId })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert('Terverifikasi! Ticket ID: ' + data.ticketId);
+    loadOrders();
+  } else {
+    alert('Gagal: ' + data.error);
+  }
+}
+
+document.getElementById('btnLoad').addEventListener('click', loadOrders);
+</script>
+</body>
+</html>
