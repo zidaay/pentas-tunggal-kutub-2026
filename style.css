@@ -1,10 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Quicksand:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #a8d8ea, #f6d5f7, #a8e6cf);
+  font-family: 'Quicksand', sans-serif;
+  color: #4a4458;
+  overflow-x: hidden;
+  position: relative;
   background-size: 200% 200%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  animation: gradientMove 18s ease infinite;
 }
+
+h1, h2, h3 { font-family: 'Baloo 2', cursive; margin: 0 0 0.5rem; }
+
+/* Background beda tiap halaman, tinggal ganti class di <body> */
+.bg-home   { background: linear-gradient(135deg, #a1c4fd, #fbc2eb, #fbc7d4); }
+.bg-pesan  { background: linear-gradient(135deg, #d4fc79, #a1c4fd, #fbc7d4); }
+.bg-admin  { background: linear-gradient(135deg, #fbc2eb, #a6c1ee, #c2f0e8); }
+
+@keyframes gradientMove {
+  0%,100% { background-position: 0% 50%; }
+  50%     { background-position: 100% 50%; }
+}
+
+/* Bubble/awan mengambang */
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  filter: blur(1px);
+  animation: float 14s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0) translateX(0); }
+  50%     { transform: translateY(-40px) translateX(25px); }
+}
+
+/* Kartu kaca */
+.glass-card {
+  position: relative; z-index: 1;
+  background: rgba(255,255,255,0.28);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.45);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(31,38,135,0.15);
+  padding: 2rem;
+}
+
+.glass-btn {
+  display: inline-block;
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(255,255,255,0.6);
+  border-radius: 999px;
+  padding: 0.8rem 2.2rem;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #4a4458;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: 0.25s;
+  text-decoration: none;
+}
+.glass-btn:hover { background: rgba(255,255,255,0.65); transform: translateY(-2px); }
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+  text-align: center;
+}
+
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.2rem;
+  width: 100%;
+}
+.ticket-card .price { font-size: 1.6rem; font-weight: 700; color: #6b5b95; margin: 0.4rem 0; }
+
+/* Form */
+.form-group { text-align: left; margin-bottom: 1.2rem; }
+.form-group label { display:block; font-weight:600; margin-bottom:0.4rem; }
+.form-group input, .form-group select {
+  width: 100%; padding: 0.7rem 1rem; border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.5);
+  font-family: 'Quicksand', sans-serif; font-size: 1rem;
+}
+
+.status-msg { padding: 1rem; border-radius: 14px; margin-top: 1rem; }
+.status-ok { background: rgba(150,230,170,0.4); }
+.status-err { background: rgba(250,150,150,0.4); }
+
+table.admin-table { width:100%; border-collapse: collapse; background: rgba(255,255,255,0.3); border-radius: 16px; overflow:hidden; }
+table.admin-table th, table.admin-table td { padding: 0.7rem; border-bottom: 1px solid rgba(255,255,255,0.4); text-align:left; font-size:0.9rem; }
