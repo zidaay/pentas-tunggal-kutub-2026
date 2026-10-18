@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,39 +6,77 @@
   <title>Pentas Tunggal KUTUB 2026</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-home">
-  <main class="content">
-    <header class="hero">
-      <span class="eyebrow">PENTAS TUNGGAL</span>
-      <h1>KUTUB 2026</h1>
-      <p class="muted">Satu panggung, banyak cerita. Amankan tiketmu sebelum kehabisan!</p>
-    </header>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">KUTUB 2026</a>
+    <span class="muted">Pentas Tunggal</span>
+  </div>
+</header>
 
-    <section aria-labelledby="ticketHeading">
-      <h2 id="ticketHeading">Tiket yang Sedang Dijual</h2>
-      <p class="muted">Early Bird, Presale, dan Reguler dibuka secara berurutan. Bundle dijual terpisah.</p>
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow">Pentas Tunggal KUTUB 2026</div>
+        <h1>Satu panggung,<br>satu cerita.</h1>
+        <p>
+          Amankan tiketmu dan jadi bagian dari momen Pentas Tunggal
+          KUTUB 2026. Pilih tiket yang tersedia, isi data pemesanan,
+          lalu unggah bukti pembayaran.
+        </p>
+        <a class="btn" href="#tiket">Lihat Tiket</a>
+      </div>
+
+      <aside class="hero-card">
+        <div class="eyebrow" style="color:#f3cbd4">
+          Informasi Tiket
+        </div>
+        <h2>Pilih tiketmu</h2>
+        <p>
+          Tahap tiket reguler berurutan. Saat kuota tahap aktif habis,
+          tahap berikutnya otomatis dibuka. Bundle tersedia terpisah
+          selama kuotanya masih ada.
+        </p>
+        <a class="btn btn-light" href="#tiket">Cek ketersediaan</a>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" id="tiket">
+    <div class="container">
+      <div class="section-heading">
+        <div class="eyebrow">Pilihan tiket</div>
+        <h2>Tiket yang tersedia</h2>
+        <p id="ticketMessage">Sedang memuat ketersediaan tiket...</p>
+      </div>
 
       <div class="ticket-grid" id="ticketGrid">
-        <p class="muted">Memuat ketersediaan tiket...</p>
+        <div class="card">Memuat tiket...</div>
       </div>
-      <p class="status-msg" id="statusMessage" aria-live="polite"></p>
-    </section>
 
-    <footer class="page-footer">
-      <p>© KUTUB 2026</p>
-      <a href="admin.html">Halaman Admin</a>
-    </footer>
-  </main>
+      <p class="muted" style="margin-top:18px">
+        Tahap yang belum dibuka tidak dapat dipesan. Ketersediaan
+        diperbarui dari sistem.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container">Pentas Tunggal KUTUB 2026</div>
+</footer>
 
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
 
-const grid = document.getElementById('ticketGrid');
-const message = document.getElementById('statusMessage');
-
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
   })[char]);
 }
 
@@ -52,57 +89,69 @@ function money(value) {
 }
 
 async function loadTickets() {
-  grid.innerHTML = '<p class="muted">Memuat ketersediaan tiket...</p>';
-  message.textContent = '';
+  const grid = document.getElementById('ticketGrid');
+  const message = document.getElementById('ticketMessage');
 
   try {
     const response = await fetch(API + '?action=getTicketStatus');
-    if (!response.ok) throw new Error('Server tiket tidak merespons.');
+    const data = await response.json();
 
-    const result = await response.json();
-    if (!result.success) throw new Error(result.error || 'Gagal memuat tiket.');
+    if (!data.success) {
+      throw new Error(data.error || 'Gagal memuat tiket.');
+    }
 
-    const available = Array.isArray(result.available) ? result.available : [];
+    const tickets = data.available || [];
 
-    if (available.length === 0) {
+    if (!tickets.length) {
       grid.innerHTML = `
-        <article class="ticket-card sold-out">
-          <h2>Tiket Habis</h2>
-          <p>Terima kasih atas antusiasmenya!</p>
-        </article>`;
-      message.textContent = 'Saat ini tidak ada tiket yang tersedia.';
+        <div class="card">
+          <h3>Tiket sudah habis</h3>
+          <p>Maaf, seluruh tiket saat ini sudah tidak tersedia.</p>
+        </div>
+      `;
+      message.textContent = 'Tidak ada tiket yang tersedia saat ini.';
       return;
     }
 
-    grid.innerHTML = available.map(ticket => {
-      const isBundle = ticket.nama === 'Bundle';
-      const stock = Math.max(0, Number(ticket.sisa) || 0);
-      const quota = Number(ticket.kuota) || 0;
+    grid.innerHTML = tickets.map(ticket => `
+      <article class="card ticket-card ${ticket.nama === 'Bundle' ? 'bundle' : ''}">
+        <span class="pill available">
+          ${ticket.nama === 'Bundle' ? 'Bundle tersedia' : 'Sedang dijual'}
+        </span>
 
-      return `
-        <article class="ticket-card ${isBundle ? 'bundle' : ''}">
-          <span class="badge">${isBundle ? 'BUNDLE' : 'TAHAP TIKET'}</span>
-          <h2>${esc(ticket.nama)}</h2>
-          <p class="price">${money(ticket.harga)}</p>
-          <p class="stock">
-            Sisa kuota: <strong>${stock}</strong> dari ${quota}
-            ${isBundle ? 'paket' : 'kursi'}
-          </p>
-          <a class="btn" href="pesan.html?jenis=${encodeURIComponent(ticket.nama)}">
-            Pesan Sekarang
-          </a>
-        </article>`;
-    }).join('');
+        <h3>${esc(ticket.nama)}</h3>
 
-    message.textContent = 'Kuota ditampilkan berdasarkan data terbaru dari server.';
+        <div class="price">${money(ticket.harga)}</div>
+
+        <div class="quota">
+          Sisa kuota: ${Number(ticket.sisa)}
+          ${ticket.nama === 'Bundle' ? 'paket' : 'tiket'}
+        </div>
+
+        <p>
+          ${ticket.nama === 'Bundle'
+            ? 'Paket bundle dengan kuota terpisah.'
+            : 'Tahap tiket berurutan yang sedang aktif.'}
+        </p>
+
+        <a class="btn"
+           href="pesan.html?jenis=${encodeURIComponent(ticket.nama)}">
+          Pesan ${esc(ticket.nama)}
+        </a>
+      </article>
+    `).join('');
+
+    message.textContent = 'Tiket yang dapat dipesan saat ini:';
   } catch (error) {
     grid.innerHTML = `
-      <article class="ticket-card">
-        <h2>Tiket belum dapat dimuat</h2>
-        <p>Periksa koneksi internet atau coba lagi beberapa saat.</p>
-        <button class="btn" onclick="loadTickets()">Coba Lagi</button>
-      </article>`;
-    message.textContent = error.message;
+      <div class="card">
+        <h3>Tiket belum dapat dimuat</h3>
+        <p>${esc(error.message)}</p>
+        <button onclick="loadTickets()">Coba lagi</button>
+      </div>
+    `;
+
+    message.textContent = 'Periksa koneksi lalu coba lagi.';
   }
 }
 
