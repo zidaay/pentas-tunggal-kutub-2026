@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -8,60 +7,62 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-admin">
-  <main class="panel">
-    <a href="admin.html" class="back-link">← Kembali ke Dashboard</a>
-    <h1>Kuota Tiket</h1>
-    <p class="muted">Pantau jumlah tiket yang dipesan, terverifikasi, dan tersisa.</p>
+<main class="admin-panel">
+  <div class="top-actions">
+    <a class="btn btn-light" href="admin.html">Kembali ke Admin</a>
+    <button onclick="loadData()" class="btn">Muat Ulang</button>
+    <button onclick="logout()" class="btn btn-muted">Keluar</button>
+  </div>
 
-    <div id="summary" class="summary-grid">
-      <article class="summary-card">
-        <span>Total Kuota</span>
-        <strong>—</strong>
-      </article>
-      <article class="summary-card">
-        <span>Sudah Dipesan</span>
-        <strong>—</strong>
-      </article>
-      <article class="summary-card">
-        <span>Sisa Kuota</span>
-        <strong>—</strong>
-      </article>
-    </div>
+  <div class="eyebrow">Pemantauan internal</div>
+  <h1>Kuota dan Tahap Tiket</h1>
+  <p class="muted">
+    Semua jenis tiket ditampilkan. Tahap berikutnya menunggu sampai
+    tahap sebelumnya habis. Bundle memiliki kuota terpisah dan tersedia sejak awal.
+  </p>
 
-    <div class="table-wrap">
-      <table class="ticket-table">
-        <thead>
-          <tr>
-            <th>Jenis Tiket</th>
-            <th>Harga</th>
-            <th>Kuota</th>
-            <th>Dipesan</th>
-            <th>Terverifikasi</th>
-            <th>Sisa</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="typesBody">
-          <tr><td colspan="7">Memuat data...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div id="message" class="notice">Memuat data...</div>
 
-    <p id="message" class="status-msg" aria-live="polite"></p>
-    <button class="btn" id="refreshBtn" type="button">Muat Ulang</button>
-  </main>
+  <div class="table-wrap" style="margin-top:18px">
+    <table>
+      <thead>
+        <tr>
+          <th>Jenis Tiket</th>
+          <th>Harga</th>
+          <th>Kuota</th>
+          <th>Dipesan</th>
+          <th>Terverifikasi</th>
+          <th>Sisa</th>
+          <th>Status Tahap</th>
+        </tr>
+      </thead>
+      <tbody id="body">
+        <tr><td colspan="7">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Aturan Penjualan</h2>
+  <ol class="step-list">
+    <li><strong>Early Bird</strong> dijual terlebih dahulu sampai kuota 15 tiket habis.</li>
+    <li><strong>Presale</strong> otomatis tersedia setelah Early Bird habis, sampai kuota 30 tiket habis.</li>
+    <li><strong>Reguler</strong> otomatis tersedia setelah Presale habis, sampai kuota 126 tiket habis.</li>
+    <li><strong>Bundle</strong> tersedia bersamaan sejak awal, kuota 10 paket, dan tidak membuka tahap lain.</li>
+  </ol>
+</main>
 
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
 const pin = sessionStorage.getItem('adminPin') || '';
 const role = sessionStorage.getItem('adminRole') || '';
 
-const body = document.getElementById('typesBody');
-const message = document.getElementById('message');
-
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
   })[char]);
 }
 
@@ -73,71 +74,71 @@ function money(value) {
   }).format(Number(value) || 0);
 }
 
-async function loadTypes() {
-  body.innerHTML = '<tr><td colspan="7">Memuat data...</td></tr>';
-  message.textContent = '';
+function logout() {
+  sessionStorage.removeItem('adminPin');
+  sessionStorage.removeItem('adminRole');
+  location.href = 'admin.html';
+}
+
+async function loadData() {
+  const message = document.getElementById('message');
+
+  if (!pin || role !== 'super') {
+    message.className = 'error';
+    message.textContent =
+      'Halaman ini hanya untuk admin dengan akses super. Silakan login dari halaman admin.';
+    document.getElementById('body').innerHTML =
+      '<tr><td colspan="7">Akses ditolak.</td></tr>';
+    return;
+  }
 
   try {
-    const response = await fetch(API + '?action=getTicketStatus');
-    if (!response.ok) throw new Error('Server tidak merespons.');
+    const response = await fetch(API + '?' + new URLSearchParams({
+      action: 'getTicketStatus'
+    }));
 
     const data = await response.json();
-    if (!data.success) throw new Error(data.error || 'Gagal mengambil data kuota.');
 
-    const types = Array.isArray(data.ticketTypes) ? data.ticketTypes : [];
-    const availableNames = new Set(
-      (Array.isArray(data.available) ? data.available : []).map(t => t.nama)
-    );
-
-    if (!types.length) {
-      body.innerHTML = '<tr><td colspan="7">Data kuota belum tersedia.</td></tr>';
-      return;
+    if (!data.success) {
+      throw new Error(data.error || 'Gagal memuat kuota.');
     }
 
-    body.innerHTML = types.map(t => {
-      const quota = Number(t.kuota) || 0;
-      const ordered = Number(t.dipesan) || 0;
-      const verified = Number(t.terverifikasi) || 0;
-      const remaining = Number(t.sisa) || 0;
-      const available = availableNames.has(t.nama);
-      const status = remaining <= 0 ? 'Habis' : available ? 'Dijual' : 'Menunggu giliran';
+    document.getElementById('body').innerHTML =
+      (data.ticketTypes || []).map(ticket => {
+        let status;
 
-      return `<tr>
-        <td>${esc(t.nama)}</td>
-        <td>${money(t.harga)}</td>
-        <td>${quota}</td>
-        <td>${ordered}</td>
-        <td>${verified}</td>
-        <td>${remaining}</td>
-        <td><span class="status-pill">${status}</span></td>
-      </tr>`;
-    }).join('');
+        if (Number(ticket.sisa) <= 0) {
+          status = 'Habis';
+        } else if (ticket.nama === 'Bundle') {
+          status = 'Tersedia sejak awal';
+        } else if (ticket.tersedia) {
+          status = 'Sedang dijual';
+        } else {
+          status = 'Menunggu tahap sebelumnya habis';
+        }
 
-    const totalQuota = types.reduce((sum, t) => sum + (Number(t.kuota) || 0), 0);
-    const totalOrdered = types.reduce((sum, t) => sum + (Number(t.dipesan) || 0), 0);
-    const totalRemaining = types.reduce((sum, t) => sum + (Number(t.sisa) || 0), 0);
+        return `
+          <tr>
+            <td>${esc(ticket.nama)}</td>
+            <td>${money(ticket.harga)}</td>
+            <td>${Number(ticket.kuota)}</td>
+            <td>${Number(ticket.dipesan)}</td>
+            <td>${Number(ticket.terverifikasi)}</td>
+            <td>${Number(ticket.sisa)}</td>
+            <td><span class="status">${status}</span></td>
+          </tr>
+        `;
+      }).join('');
 
-    document.getElementById('summary').innerHTML = `
-      <article class="summary-card"><span>Total Kuota</span><strong>${totalQuota}</strong></article>
-      <article class="summary-card"><span>Sudah Dipesan</span><strong>${totalOrdered}</strong></article>
-      <article class="summary-card"><span>Sisa Kuota</span><strong>${totalRemaining}</strong></article>`;
-
-    message.textContent = 'Data berhasil diperbarui.';
+    message.className = 'success';
+    message.textContent = 'Data kuota berhasil diperbarui.';
   } catch (error) {
-    body.innerHTML = `<tr><td colspan="7">${esc(error.message)}</td></tr>`;
-    message.textContent = 'Periksa koneksi dan konfigurasi Google Apps Script.';
+    message.className = 'error';
+    message.textContent = error.message;
   }
 }
 
-if (!pin || role !== 'super') {
-  document.querySelector('.panel').innerHTML = `
-    <h1>Akses Ditolak</h1>
-    <p>Halaman ini hanya dapat dibuka oleh admin super.</p>
-    <a href="admin.html">Kembali ke login admin</a>`;
-} else {
-  loadTypes();
-  document.getElementById('refreshBtn').addEventListener('click', loadTypes);
-}
+loadData();
 </script>
 </body>
 </html>
