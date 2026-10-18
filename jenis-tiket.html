@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kelola Jenis Tiket - KUTUB 2026</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body{min-height:100vh;padding:22px 14px}
+    .panel{max-width:850px;margin:20px auto;padding:24px;background:#ffffffed;border-radius:20px;box-shadow:0 8px 30px #321c2420}
+    h1,h2{color:#53161f}
+    .field{width:100%;box-sizing:border-box;padding:12px;margin:7px 0 14px;border:1px solid #ddd;border-radius:10px}
+    .btn{padding:11px 16px;border:0;border-radius:10px;background:#53161f;color:white;cursor:pointer;margin:4px}
+    .secondary{background:#76515a}
+    .muted{color:#776970;font-size:13px}
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:500px}
+    th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}
+    th{background:#f8edf0;color:#53161f}
+  </style>
+</head>
+<body class="bg-admin">
+  <main class="panel">
+    <a href="admin.html">← Kembali ke Dashboard</a>
+    <h1>Kelola Jenis Tiket</h1>
+    <p class="muted">Jenis tiket yang ditambahkan akan muncul di halaman pemesanan setelah aktif.</p>
+
+    <form id="typeForm">
+      <label for="nama">Nama jenis tiket</label>
+      <input class="field" id="nama" maxlength="60" placeholder="Contoh: Presale 1" required>
+      <label for="harga">Harga per tiket (Rp)</label>
+      <input class="field" id="harga" type="number" min="0" step="1000" placeholder="Contoh: 35000" required>
+      <button class="btn" type="submit">+ Tambah Jenis Tiket</button>
+      <p id="message" class="muted"></p>
+    </form>
+
+    <h2>Daftar Jenis Tiket</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nama</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="typesBody"><tr><td colspan="4">Memuat data...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
+const pin=sessionStorage.getItem('adminPin')||'';
+const role=sessionStorage.getItem('adminRole')||'';
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(v){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);}
+async function post(data){
+  const r=await fetch(API,{method:'POST',body:JSON.stringify(data)});
+  return r.json();
+}
+async function loadTypes(){
+  const body=document.getElementById('typesBody');
+  try{
+    const r=await fetch(API+'?'+new URLSearchParams({action:'adminTicketTypes',pin}));
+    const data=await r.json();
+    if(!data.success)throw new Error(data.error||'Gagal mengambil data.');
+    const types=data.ticketTypes||[];
+    body.innerHTML=types.length?types.map(t=>`
+      <tr>
+        <td>${esc(t.nama)}</td>
+        <td>${money(t.harga)}</td>
+        <td>${t.aktif?'Aktif — dijual':'Nonaktif'}</td>
+        <td><button class="btn ${t.aktif?'secondary':''}" onclick="toggleType('${esc(t.id)}','${esc(t.nama)}',${t.aktif})">${t.aktif?'Nonaktifkan':'Aktifkan'}</button></td>
+      </tr>`).join(''):'<tr><td colspan="4">Belum ada jenis tiket. Tambahkan melalui formulir di atas.</td></tr>';
+  }catch(e){body.innerHTML='<tr><td colspan="4">'+esc(e.message)+'</td></tr>';}
+}
+document.getElementById('typeForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const message=document.getElementById('message');
+  message.textContent='Menyimpan jenis tiket...';
+  try{
+    const result=await post({
+      action:'createTicketType',
+      pin,
+      nama:document.getElementById('nama').value.trim(),
+      harga:Number(document.getElementById('harga').value)
+    });
+    if(!result.success)throw new Error(result.error||'Gagal menambahkan tiket.');
+    message.textContent='Jenis tiket berhasil ditambahkan.';
+    e.target.reset();
+    loadTypes();
+  }catch(err){message.textContent=err.message;}
+});
+async function toggleType(id,nama,aktif){
+  const action=aktif?'menonaktifkan':'mengaktifkan';
+  if(!confirm('Yakin ingin '+action+' jenis tiket "'+nama+'"?'))return;
+  try{
+    const result=await post({action:'toggleTicketType',pin,id});
+    if(!result.success)throw new Error(result.error||'Gagal mengubah status.');
+    loadTypes();
+  }catch(err){alert(err.message);}
+}
+if(!pin||role!=='super'){
+  document.querySelector('.panel').innerHTML='<h1>Akses ditolak</h1><p>Halaman ini hanya bisa dibuka oleh admin super.</p><a href="admin.html">Kembali ke login admin</a>';
+}else{
+  loadTypes();
+}
+</script>
+</body>
+</html>
