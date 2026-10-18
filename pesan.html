@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,60 +6,107 @@
   <title>Pesan Tiket - KUTUB 2026</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-pesan">
-  <main class="panel">
-    <a href="index.html" class="back-link">← Kembali ke halaman utama</a>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">KUTUB 2026</a>
+    <a href="index.html">Kembali ke beranda</a>
+  </div>
+</header>
+
+<main class="container section">
+  <div class="panel" style="max-width:850px;margin:auto">
+    <div class="eyebrow">Pemesanan tiket</div>
     <h1>Pesan Tiket</h1>
-    <p class="muted">Isi data dengan benar dan unggah bukti pembayaran.</p>
+    <p class="muted">
+      Isi data dengan benar dan unggah bukti pembayaran.
+      Pesanan akan berstatus Pending sampai pembayaran diverifikasi panitia.
+    </p>
+
+    <div id="notice" class="notice hidden"></div>
 
     <form id="orderForm">
-      <label for="nama">Nama lengkap</label>
-      <input class="field" id="nama" name="nama" maxlength="100" autocomplete="name" required>
+      <div class="form-grid">
+        <div>
+          <label for="nama">Nama lengkap</label>
+          <input class="field" id="nama" name="nama"
+                 required maxlength="120" autocomplete="name">
+        </div>
 
-      <label for="nohp">Nomor HP</label>
-      <input class="field" id="nohp" name="nohp" type="tel" maxlength="25" autocomplete="tel" required>
+        <div>
+          <label for="nohp">Nomor HP/WhatsApp</label>
+          <input class="field" id="nohp" name="nohp"
+                 required inputmode="tel" maxlength="25" autocomplete="tel">
+        </div>
 
-      <label for="email">Email</label>
-      <input class="field" id="email" name="email" type="email" maxlength="150" autocomplete="email" required>
+        <div class="full">
+          <label for="email">Email</label>
+          <input class="field" id="email" name="email" type="email"
+                 required maxlength="150" autocomplete="email">
+        </div>
 
-      <label for="jenisTiket">Jenis tiket</label>
-      <select class="field" id="jenisTiket" name="jenisTiket" required>
-        <option value="">Memuat ketersediaan...</option>
-      </select>
+        <div>
+          <label for="jenisTiket">Jenis tiket</label>
+          <select class="field" id="jenisTiket" name="jenisTiket" required>
+            <option value="">Memuat tiket...</option>
+          </select>
+        </div>
 
-      <label for="jumlah">Jumlah tiket/paket</label>
-      <input class="field" id="jumlah" name="jumlah" type="number" min="1" max="20" value="1" required>
+        <div>
+          <label for="jumlah">Jumlah tiket/paket</label>
+          <input class="field" id="jumlah" name="jumlah" type="number"
+                 min="1" max="20" value="1" required>
+        </div>
 
-      <section class="pricebox" aria-live="polite">
-        <div>Harga satuan <strong id="unitPrice">—</strong></div>
-        <div>Sisa kuota <strong id="remaining">—</strong></div>
-        <div>Total pembayaran <strong id="totalPrice">—</strong></div>
-      </section>
+        <div class="full">
+          <div id="ticketInfo" class="success">
+            Memuat informasi tiket...
+          </div>
+          <p id="totalInfo" class="muted"></p>
+        </div>
 
-      <h2>QRIS Pembayaran</h2>
-      <div class="qris-container" id="qrisContainer">
-        <p class="muted">Memuat QRIS...</p>
+        <div class="full">
+          <h2>Pembayaran QRIS</h2>
+          <p>Scan QRIS berikut untuk membayar sesuai total pesanan.</p>
+          <div id="qrisBox">Memuat QRIS...</div>
+        </div>
+
+        <div class="full">
+          <label for="bukti">
+            Bukti pembayaran (JPG, PNG, WEBP; maks. 4 MB)
+          </label>
+          <input class="field" id="bukti" type="file"
+                 accept="image/jpeg,image/png,image/webp" required>
+        </div>
+
+        <div class="full form-actions">
+          <button type="submit" id="submitBtn">Kirim Pemesanan</button>
+          <a class="btn btn-light" href="index.html">Batal</a>
+        </div>
+
+        <div class="full">
+          <p id="formMsg" class="muted" aria-live="polite"></p>
+        </div>
       </div>
-
-      <label for="bukti">Bukti pembayaran (JPG, PNG, WEBP; maksimal 4 MB)</label>
-      <input class="field" id="bukti" name="bukti" type="file"
-        accept="image/jpeg,image/png,image/webp" required>
-
-      <button class="btn btn-full" id="submitBtn" type="submit">Kirim Pemesanan</button>
-      <p class="status-msg" id="formMessage" aria-live="polite"></p>
     </form>
-  </main>
+  </div>
+</main>
+
+<footer class="footer">Pentas Tunggal KUTUB 2026</footer>
 
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
+let available = [];
 
-let availableTypes = [];
-
-const form = document.getElementById('orderForm');
-const select = document.getElementById('jenisTiket');
-const quantityInput = document.getElementById('jumlah');
-const submitButton = document.getElementById('submitBtn');
-const message = document.getElementById('formMessage');
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
 
 function money(value) {
   return new Intl.NumberFormat('id-ID', {
@@ -72,133 +118,127 @@ function money(value) {
 
 async function get(action) {
   const response = await fetch(API + '?action=' + encodeURIComponent(action));
-  if (!response.ok) throw new Error('Server tidak merespons.');
   return response.json();
 }
 
 async function post(data) {
-  // Pertahankan request tanpa header application/json agar tidak memicu
-  // preflight CORS yang tidak didukung oleh banyak deployment Apps Script.
   const response = await fetch(API, {
     method: 'POST',
     body: JSON.stringify(data)
   });
-  if (!response.ok) throw new Error('Gagal menghubungi server pemesanan.');
   return response.json();
 }
 
 function selectedType() {
-  return availableTypes.find(t => t.nama === select.value);
+  return available.find(ticket =>
+    ticket.nama === document.getElementById('jenisTiket').value
+  );
 }
 
 function updateTotal() {
-  const type = selectedType();
-  const quantity = Number(quantityInput.value) || 0;
+  const ticket = selectedType();
+  const quantityInput = document.getElementById('jumlah');
+  const quantity = Math.max(1, Number(quantityInput.value) || 1);
 
-  document.getElementById('unitPrice').textContent = type ? money(type.harga) : '—';
-  document.getElementById('remaining').textContent = type ? type.sisa : '—';
-  document.getElementById('totalPrice').textContent =
-    type && quantity > 0 ? money(type.harga * quantity) : '—';
+  document.getElementById('totalInfo').textContent = ticket
+    ? 'Total pembayaran: ' + money(ticket.harga * quantity)
+    : '';
 
-  quantityInput.max = type ? Math.min(20, Number(type.sisa) || 0) : 20;
-  quantityInput.disabled = !type;
+  if (ticket) {
+    document.getElementById('ticketInfo').textContent =
+      'Sisa kuota ' + ticket.nama + ': ' + ticket.sisa +
+      (ticket.nama === 'Bundle' ? ' paket.' : ' tiket.');
 
-  if (type && quantity > Number(type.sisa)) {
-    quantityInput.value = Math.max(1, Number(type.sisa));
+    quantityInput.max = Math.min(20, Number(ticket.sisa) || 1);
+
+    if (quantity > Number(ticket.sisa)) {
+      quantityInput.value = ticket.sisa;
+    }
   }
-
-  submitButton.disabled = !type;
 }
 
-async function loadTicketTypes() {
-  const requestedType = new URLSearchParams(location.search).get('jenis');
-  const result = await get('getTicketStatus');
-
-  if (!result.success) {
-    throw new Error(result.error || 'Gagal memuat ketersediaan tiket.');
-  }
-
-  availableTypes = Array.isArray(result.available) ? result.available : [];
-
-  if (!availableTypes.length) {
-    select.innerHTML = '<option value="">Semua tiket habis</option>';
-    submitButton.disabled = true;
-    message.textContent = 'Saat ini tidak ada tiket yang tersedia.';
-    updateTotal();
-    return;
-  }
-
-  select.innerHTML = '<option value="">Pilih tiket</option>' +
-    availableTypes.map(t =>
-      `<option value="${String(t.nama).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${
-        t.nama
-      } — ${money(t.harga)} (sisa ${Number(t.sisa) || 0})</option>`
-    ).join('');
-
-  if (requestedType && availableTypes.some(t => t.nama === requestedType)) {
-    select.value = requestedType;
-  }
-
-  updateTotal();
-}
-
-async function loadQris() {
-  const container = document.getElementById('qrisContainer');
+async function init() {
+  const select = document.getElementById('jenisTiket');
+  const notice = document.getElementById('notice');
 
   try {
-    const result = await get('getQris');
-    if (!result.success || !result.url) {
-      throw new Error('QRIS belum tersedia.');
+    const [status, qris] = await Promise.all([
+      get('getTicketStatus'),
+      get('getQris')
+    ]);
+
+    if (!status.success) {
+      throw new Error(status.error || 'Gagal memuat ketersediaan tiket.');
     }
 
-    const image = document.createElement('img');
-    image.id = 'qrisImage';
-    image.src = result.url;
-    image.alt = 'QRIS pembayaran';
-    image.loading = 'lazy';
+    available = status.available || [];
 
-    container.replaceChildren(image);
+    if (!available.length) {
+      select.innerHTML = '<option value="">Tiket habis</option>';
+      document.getElementById('submitBtn').disabled = true;
+      notice.classList.remove('hidden');
+      notice.textContent = 'Maaf, tidak ada tiket yang tersedia saat ini.';
+      document.getElementById('ticketInfo').textContent =
+        'Seluruh tiket sedang habis.';
+    } else {
+      select.innerHTML = available.map(ticket => `
+        <option value="${esc(ticket.nama)}">
+          ${esc(ticket.nama)} — ${money(ticket.harga)}
+          (sisa ${Number(ticket.sisa)})
+        </option>
+      `).join('');
 
-    const note = document.createElement('p');
-    note.className = 'muted';
-    note.textContent = 'Pindai QRIS dan bayar sesuai total pesanan.';
-    container.appendChild(note);
+      const wanted = new URLSearchParams(location.search).get('jenis');
+
+      if (wanted && available.some(ticket => ticket.nama === wanted)) {
+        select.value = wanted;
+      }
+
+      updateTotal();
+    }
+
+    if (qris.success && qris.url) {
+      document.getElementById('qrisBox').innerHTML = `
+        <img class="qris-image" src="${esc(qris.url)}" alt="QRIS pembayaran">
+        <p class="muted" style="text-align:center">
+          Pastikan nominal pembayaran sesuai total pesanan.
+        </p>
+      `;
+    } else {
+      document.getElementById('qrisBox').innerHTML =
+        '<div class="notice">QRIS belum tersedia. Silakan hubungi panitia.</div>';
+    }
   } catch (error) {
-    container.textContent = 'QRIS belum dapat ditampilkan. Silakan hubungi panitia.';
+    notice.classList.remove('hidden');
+    notice.textContent = error.message;
+    document.getElementById('ticketInfo').textContent = 'Gagal memuat tiket.';
+    document.getElementById('submitBtn').disabled = true;
   }
 }
 
-function fileToDataUrl(file) {
+document.getElementById('jenisTiket').addEventListener('change', updateTotal);
+document.getElementById('jumlah').addEventListener('input', updateTotal);
+
+function fileData(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Gagal membaca bukti pembayaran.'));
+    reader.onerror = () => reject(new Error('Gagal membaca file.'));
     reader.readAsDataURL(file);
   });
 }
 
-select.addEventListener('change', updateTotal);
-quantityInput.addEventListener('input', updateTotal);
-
-form.addEventListener('submit', async event => {
+document.getElementById('orderForm').addEventListener('submit', async event => {
   event.preventDefault();
 
-  const type = selectedType();
-  const quantity = Number(quantityInput.value);
+  const message = document.getElementById('formMsg');
+  const button = document.getElementById('submitBtn');
   const file = document.getElementById('bukti').files[0];
+  const ticket = selectedType();
+  const quantity = Number(document.getElementById('jumlah').value);
 
-  if (!type) {
-    message.textContent = 'Pilih tiket yang masih tersedia.';
-    return;
-  }
-
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
-    message.textContent = 'Jumlah tiket harus antara 1 sampai 20.';
-    return;
-  }
-
-  if (quantity > Number(type.sisa)) {
-    message.textContent = 'Jumlah melebihi sisa kuota. Muat ulang ketersediaan tiket.';
+  if (!ticket) {
+    message.textContent = 'Tidak ada tiket yang tersedia.';
     return;
   }
 
@@ -208,27 +248,33 @@ form.addEventListener('submit', async event => {
   }
 
   if (file.size > 4 * 1024 * 1024) {
-    message.textContent = 'Ukuran file maksimal 4 MB.';
+    message.textContent = 'Ukuran bukti pembayaran maksimal 4 MB.';
     return;
   }
 
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    message.textContent = 'Format file harus JPG, PNG, atau WEBP.';
+    message.textContent = 'Format bukti harus JPG, PNG, atau WEBP.';
     return;
   }
 
-  submitButton.disabled = true;
-  message.textContent = 'Mengirim pemesanan...';
+  if (quantity < 1 || quantity > ticket.sisa) {
+    message.textContent =
+      'Jumlah melebihi sisa kuota. Muat ulang halaman untuk memperbarui data.';
+    return;
+  }
+
+  button.disabled = true;
+  message.textContent = 'Mengirim pesanan, mohon tunggu...';
 
   try {
-    const dataUrl = await fileToDataUrl(file);
+    const dataUrl = await fileData(file);
 
     const result = await post({
       action: 'order',
-      nama: document.getElementById('nama').value.trim(),
-      nohp: document.getElementById('nohp').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      jenisTiket: type.nama,
+      nama: document.getElementById('nama').value,
+      nohp: document.getElementById('nohp').value,
+      email: document.getElementById('email').value,
+      jenisTiket: ticket.nama,
       jumlah: quantity,
       buktiBase64: dataUrl.split(',')[1],
       buktiMime: file.type
@@ -238,33 +284,14 @@ form.addEventListener('submit', async event => {
       throw new Error(result.error || 'Pemesanan gagal.');
     }
 
-    if (!result.orderId) {
-      throw new Error('Pesanan diterima, tetapi nomor pesanan tidak dikembalikan server. Hubungi panitia sebelum mengirim ulang.');
-    }
-
-    message.textContent = 'Pemesanan berhasil. Mengalihkan ke halaman tiket...';
     location.href = 'tiket.html?orderId=' + encodeURIComponent(result.orderId);
   } catch (error) {
-    message.textContent = error.message || 'Terjadi kesalahan. Silakan coba lagi.';
-    submitButton.disabled = false;
-
-    try {
-      await loadTicketTypes();
-    } catch (ignored) {}
+    message.textContent = error.message;
+    button.disabled = false;
   }
 });
 
-(async function init() {
-  try {
-    await loadTicketTypes();
-  } catch (error) {
-    select.innerHTML = '<option value="">Gagal memuat tiket</option>';
-    message.textContent = error.message;
-    submitButton.disabled = true;
-  }
-
-  loadQris();
-})();
+init();
 </script>
 </body>
 </html>
