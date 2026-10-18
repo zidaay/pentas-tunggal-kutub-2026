@@ -1,189 +1,127 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pesan Tiket - KUTUB 2026</title>
+  <title>Status Tiket - KUTUB 2026</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body{min-height:100vh;padding:22px 14px}
-    .panel{max-width:620px;margin:20px auto;padding:24px;background:#ffffffed;border-radius:20px;box-shadow:0 8px 30px #321c2420}
-    h1,h2{color:#53161f}
-    .field{width:100%;box-sizing:border-box;padding:12px;margin:7px 0 14px;border:1px solid #ddd;border-radius:10px}
-    .btn{width:100%;padding:13px;border:0;border-radius:10px;background:#53161f;color:white;cursor:pointer;font-size:16px}
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    .muted{color:#776970;font-size:13px}
-    .pricebox{padding:14px;border-radius:12px;background:#f8edf0;margin:10px 0 18px;line-height:1.9}
-    .pricebox strong{color:#53161f;font-size:19px}
-    #qrisImage{max-width:100%;max-height:280px;object-fit:contain}
-    .center{text-align:center}
-  </style>
 </head>
-<body class="bg-pesan">
-  <main class="panel">
-    <a href="index.html">← Kembali ke halaman utama</a>
-    <h1>Pesan Tiket</h1>
-    <p>Lengkapi data dan unggah bukti pembayaran.</p>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">KUTUB 2026</a>
+    <a href="index.html">Beranda</a>
+  </div>
+</header>
 
-    <form id="orderForm">
-      <label for="nama">Nama lengkap</label>
-      <input class="field" id="nama" name="nama" maxlength="100" required>
+<main class="container section">
+  <section class="panel ticket-detail">
+    <div class="eyebrow">Status pemesanan</div>
+    <h1>Tiket Kamu</h1>
+    <p id="statusMessage" class="notice">Memeriksa status pesanan...</p>
+    <div id="ticketContent"></div>
 
-      <label for="nohp">Nomor HP</label>
-      <input class="field" id="nohp" name="nohp" type="tel" maxlength="25" required>
+    <div class="form-actions" style="margin-top:20px">
+      <button type="button" onclick="loadOrder()" class="btn-muted">
+        Perbarui Status
+      </button>
+      <a class="btn btn-light" href="index.html">Kembali ke Beranda</a>
+    </div>
+  </section>
+</main>
 
-      <label for="email">Email</label>
-      <input class="field" id="email" name="email" type="email" maxlength="150" required>
-
-      <label for="jenisTiket">Jenis tiket</label>
-      <select class="field" id="jenisTiket" name="jenisTiket" required>
-        <option value="">Memuat ketersediaan...</option>
-      </select>
-
-      <label for="jumlah">Jumlah tiket/paket</label>
-      <input class="field" id="jumlah" name="jumlah" type="number" min="1" max="20" value="1" required>
-
-      <div class="pricebox">
-        Harga satuan: <strong id="unitPrice">—</strong><br>
-        Sisa kuota: <strong id="remaining">—</strong><br>
-        Total pembayaran: <strong id="totalPrice">—</strong>
-      </div>
-
-      <h2>QRIS Pembayaran</h2>
-      <div class="center" id="qrisContainer"><p class="muted">Memuat QRIS...</p></div>
-
-      <label for="bukti">Bukti pembayaran (JPG, PNG, WEBP; maksimal 4 MB)</label>
-      <input class="field" id="bukti" name="bukti" type="file" accept="image/jpeg,image/png,image/webp" required>
-
-      <button class="btn" id="submitBtn" type="submit">Kirim Pemesanan</button>
-      <p class="muted" id="formMessage"></p>
-    </form>
-  </main>
+<footer class="footer">Pentas Tunggal KUTUB 2026</footer>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
-let availableTypes=[];
+const API = 'https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
+const orderId = new URLSearchParams(location.search).get('orderId');
 
-function esc(v){
-  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
 }
-function money(v){
-  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
-}
-async function get(action){
-  const response=await fetch(API+'?action='+encodeURIComponent(action));
-  return response.json();
-}
-async function post(data){
-  const response=await fetch(API,{method:'POST',body:JSON.stringify(data)});
-  return response.json();
-}
-function selectedType(){
-  return availableTypes.find(t=>t.nama===document.getElementById('jenisTiket').value);
-}
-function updateTotal(){
-  const type=selectedType();
-  const jumlah=Number(document.getElementById('jumlah').value)||0;
-  document.getElementById('unitPrice').textContent=type?money(type.harga):'—';
-  document.getElementById('remaining').textContent=type?type.sisa:'—';
-  document.getElementById('totalPrice').textContent=type?money(type.harga*jumlah):'—';
-  document.getElementById('jumlah').max=type?Math.min(20,type.sisa):20;
-}
-async function loadTicketTypes(){
-  const select=document.getElementById('jenisTiket');
-  const requested=new URLSearchParams(location.search).get('jenis');
-  const result=await get('getTicketStatus');
-  if(!result.success)throw new Error(result.error||'Gagal memuat ketersediaan tiket.');
 
-  availableTypes=result.available||[];
-  if(!availableTypes.length){
-    select.innerHTML='<option value="">Semua tiket habis</option>';
-    document.getElementById('submitBtn').disabled=true;
-    document.getElementById('formMessage').textContent='Semua tiket sudah habis.';
-    updateTotal();
+async function loadOrder() {
+  const message = document.getElementById('statusMessage');
+  const content = document.getElementById('ticketContent');
+
+  if (!orderId) {
+    message.className = 'error';
+    message.textContent =
+      'Order ID tidak ditemukan. Buka halaman ini dari tautan setelah pemesanan.';
     return;
   }
 
-  select.innerHTML='<option value="">Pilih tiket</option>'+availableTypes.map(t=>
-    `<option value="${esc(t.nama)}">${esc(t.nama)} — ${money(t.harga)} (sisa ${t.sisa})</option>`
-  ).join('');
+  message.className = 'notice';
+  message.textContent = 'Memeriksa status pesanan...';
 
-  if(requested&&availableTypes.some(t=>t.nama===requested))select.value=requested;
-  updateTotal();
-}
-async function loadQris(){
-  const container=document.getElementById('qrisContainer');
-  try{
-    const result=await get('getQris');
-    if(!result.success||!result.url)throw new Error(result.error||'QRIS belum tersedia.');
-    container.innerHTML=`<img id="qrisImage" src="${esc(result.url)}" alt="QRIS pembayaran"><p class="muted">Pindai QRIS dan bayar sesuai total pesanan.</p>`;
-  }catch(error){
-    container.innerHTML='<p class="muted">QRIS belum dapat ditampilkan. Silakan hubungi panitia.</p>';
+  try {
+    const response = await fetch(API + '?' + new URLSearchParams({
+      action: 'checkOrder',
+      orderId: orderId
+    }));
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Pesanan tidak ditemukan.');
+    }
+
+    if (data.Status === 'Verified') {
+      message.className = 'success';
+      message.textContent = data.Digunakan === 'Sudah'
+        ? 'Tiket ini sudah digunakan untuk check-in.'
+        : 'Pembayaran terverifikasi! Tiket kamu sudah aktif.';
+
+      content.innerHTML = `
+        <h2>Detail Tiket</h2>
+        <p><strong>Nama:</strong> ${esc(data.Nama)}</p>
+        <p><strong>Order ID:</strong></p>
+        <div class="ticket-code">${esc(data.OrderID)}</div>
+        <p><strong>Ticket ID:</strong></p>
+        <div class="ticket-code">${esc(data.TicketID || 'Belum tersedia')}</div>
+        <p><strong>Jenis tiket:</strong> ${esc(data.JenisTiket)}</p>
+        <p><strong>Jumlah:</strong> ${esc(data.Jumlah)}</p>
+        <p><strong>Status:</strong> ${esc(data.Status)}</p>
+        <p><strong>Check-in:</strong> ${esc(data.Digunakan || 'Belum')}</p>
+
+        ${data.QRUrl ? `
+          <img class="qr-ticket" src="${esc(data.QRUrl)}" alt="QR Code tiket">
+          <p class="muted" style="text-align:center">
+            Tunjukkan QR code ini kepada panitia saat check-in.
+          </p>
+        ` : ''}
+      `;
+    } else {
+      message.className = 'notice';
+      message.textContent =
+        'Pesanan diterima dan sedang menunggu verifikasi pembayaran.';
+
+      content.innerHTML = `
+        <h2>Detail Pesanan</h2>
+        <p><strong>Nama:</strong> ${esc(data.Nama)}</p>
+        <p><strong>Order ID:</strong></p>
+        <div class="ticket-code">${esc(data.OrderID)}</div>
+        <p><strong>Jenis tiket:</strong> ${esc(data.JenisTiket)}</p>
+        <p><strong>Jumlah:</strong> ${esc(data.Jumlah)}</p>
+        <p><strong>Status:</strong> ${esc(data.Status)}</p>
+        <p class="muted">
+          QR tiket akan tersedia setelah pembayaran diverifikasi panitia.
+        </p>
+      `;
+    }
+  } catch (error) {
+    message.className = 'error';
+    message.textContent = error.message;
   }
 }
-function fileToDataUrl(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result);
-    reader.onerror=()=>reject(new Error('Gagal membaca file bukti pembayaran.'));
-    reader.readAsDataURL(file);
-  });
-}
 
-document.getElementById('jenisTiket').addEventListener('change',updateTotal);
-document.getElementById('jumlah').addEventListener('input',updateTotal);
-
-document.getElementById('orderForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const msg=document.getElementById('formMessage');
-  const button=document.getElementById('submitBtn');
-  const file=document.getElementById('bukti').files[0];
-  const type=selectedType();
-  const jumlah=Number(document.getElementById('jumlah').value);
-
-  if(!type){msg.textContent='Pilih tiket yang masih tersedia.';return;}
-  if(!Number.isInteger(jumlah)||jumlah<1||jumlah>20){msg.textContent='Jumlah harus antara 1 sampai 20.';return;}
-  if(jumlah>type.sisa){msg.textContent='Jumlah melebihi sisa kuota.';return;}
-  if(!file){msg.textContent='Unggah bukti pembayaran terlebih dahulu.';return;}
-  if(file.size>4*1024*1024){msg.textContent='Ukuran file maksimal 4 MB.';return;}
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){msg.textContent='Format harus JPG, PNG, atau WEBP.';return;}
-
-  button.disabled=true;
-  msg.textContent='Mengirim pemesanan...';
-
-  try{
-    const dataUrl=await fileToDataUrl(file);
-    const result=await post({
-      action:'order',
-      nama:document.getElementById('nama').value.trim(),
-      nohp:document.getElementById('nohp').value.trim(),
-      email:document.getElementById('email').value.trim(),
-      jenisTiket:type.nama,
-      jumlah,
-      buktiBase64:dataUrl.split(',')[1],
-      buktiMime:file.type
-    });
-
-    if(!result.success)throw new Error(result.error||'Pemesanan gagal.');
-    msg.textContent='Pesanan berhasil dikirim. Mengalihkan ke halaman tiket...';
-    location.href='tiket.html?orderId='+encodeURIComponent(result.orderId);
-  }catch(error){
-    msg.textContent=error.message||'Terjadi kesalahan. Silakan coba lagi.';
-    button.disabled=false;
-    try{await loadTicketTypes();}catch(e){}
-  }
-});
-
-(async()=>{
-  try{await loadTicketTypes();}
-  catch(error){
-    document.getElementById('jenisTiket').innerHTML='<option value="">Gagal memuat tiket</option>';
-    document.getElementById('formMessage').textContent=error.message;
-    document.getElementById('submitBtn').disabled=true;
-  }
-  loadQris();
-})();
+loadOrder();
 </script>
 </body>
 </html>
