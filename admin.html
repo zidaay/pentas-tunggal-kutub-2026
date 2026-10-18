@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,293 +6,548 @@
   <title>Admin - KUTUB 2026</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    body{min-height:100vh;padding:22px 14px}
-    .panel{max-width:1150px;margin:20px auto;padding:24px;background:#ffffffed;border-radius:20px;box-shadow:0 8px 30px #321c2420}
-    h1,h2{color:#53161f}
-    .field{width:100%;box-sizing:border-box;padding:12px;margin:7px 0 14px;border:1px solid #ddd;border-radius:10px}
-    .btn{padding:11px 16px;border:0;border-radius:10px;background:#53161f;color:white;cursor:pointer;margin:4px}
-    .secondary{background:#76515a}
-    .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-    .stat{padding:16px;border-radius:14px;background:#f8edf0}
-    .stat strong{display:block;font-size:24px;color:#53161f;margin-top:8px}
-    .table-wrap{overflow-x:auto}
-    table{border-collapse:collapse;width:100%;min-width:700px}
-    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
-    th{background:#f8edf0;color:#53161f}
-    .hidden{display:none}
-    .muted{color:#776970;font-size:13px}
-    .status{display:inline-block;padding:4px 8px;border-radius:10px;background:#f8e7eb;color:#53161f}
+    body {
+      min-height: 100vh;
+      padding: 22px 14px;
+    }
+
+    .panel {
+      max-width: 1150px;
+      margin: 20px auto;
+      padding: 24px;
+      background: #ffffffed;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px #321c2420;
+    }
+
+    h1, h2 {
+      color: #53161f;
+    }
+
+    .field {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin: 7px 0 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+
+    .btn {
+      padding: 11px 16px;
+      border: 0;
+      border-radius: 10px;
+      background: #53161f;
+      color: white;
+      cursor: pointer;
+      margin: 4px;
+    }
+
+    .secondary {
+      background: #76515a;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: 14px;
+      background: #f8edf0;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      color: #53161f;
+      margin-top: 8px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 700px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8edf0;
+      color: #53161f;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .muted {
+      color: #776970;
+      font-size: 13px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 10px;
+      background: #f8e7eb;
+      color: #53161f;
+    }
   </style>
 </head>
 <body class="bg-admin">
-  <main class="panel" id="loginPanel">
-    <h1>Admin KUTUB 2026</h1>
-    <p>Masuk menggunakan PIN admin.</p>
-    <form id="loginForm">
-      <label for="pin">PIN Admin</label>
-      <input class="field" id="pin" type="password" inputmode="numeric" required>
-      <button class="btn" type="submit">Masuk</button>
-      <p id="loginMsg" class="muted"></p>
+
+<main class="panel" id="loginPanel">
+  <h1>Admin KUTUB 2026</h1>
+  <p>Masuk menggunakan PIN admin.</p>
+
+  <form id="loginForm">
+    <label for="pin">PIN Admin</label>
+    <input class="field" id="pin" type="password"
+           inputmode="numeric" required>
+    <button class="btn" type="submit">Masuk</button>
+    <p id="loginMsg" class="muted"></p>
+  </form>
+</main>
+
+<main class="panel hidden" id="dashboard">
+  <h1>Dashboard Admin</h1>
+  <p id="roleLabel" class="muted"></p>
+
+  <button class="btn secondary" onclick="loadDashboard()">Refresh Data</button>
+  <button class="btn secondary" onclick="logout()">Keluar</button>
+
+  <h2>Ringkasan Penjualan</h2>
+  <div class="summary">
+    <div class="stat">Total pesanan<strong id="totalOrders">0</strong></div>
+    <div class="stat">Tiket/paket dipesan<strong id="totalOrdered">0</strong></div>
+    <div class="stat">Terverifikasi<strong id="totalVerified">0</strong></div>
+    <div class="stat">Menunggu pembayaran<strong id="totalPending">0</strong></div>
+  </div>
+
+  <h2>Kuota dan Tahap Tiket</h2>
+  <p class="muted">
+    Semua tahap ditampilkan di sini. Tahap berikutnya otomatis dibuka
+    setelah kuota tahap sebelumnya habis. Pesanan Pending tetap memakai
+    kuota. Bundle tersedia terpisah sejak awal.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Jenis Tiket</th>
+          <th>Harga</th>
+          <th>Kuota</th>
+          <th>Dipesan</th>
+          <th>Terverifikasi</th>
+          <th>Sisa</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="ticketSummary">
+        <tr><td colspan="7">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Daftar Pesanan</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Nama</th>
+          <th>Jenis</th>
+          <th>Jumlah</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Bukti</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody">
+        <tr><td colspan="8">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section id="manualSection">
+    <h2>Input Tiket Manual</h2>
+    <p class="muted">
+      Tiket manual juga menggunakan kuota yang sama dengan penjualan online.
+    </p>
+
+    <form id="manualForm">
+      <label>Nama pembeli</label>
+      <input class="field" name="nama" required>
+
+      <label>Nomor HP (opsional)</label>
+      <input class="field" name="nohp">
+
+      <label>Email (opsional)</label>
+      <input class="field" name="email" type="email">
+
+      <label>Jenis tiket yang sedang tersedia</label>
+      <select class="field" name="jenisTiket" id="manualType" required></select>
+
+      <label>Jumlah tiket/paket</label>
+      <input class="field" name="jumlah" id="manualQuantity"
+             type="number" min="1" max="20" value="1" required>
+
+      <button class="btn" type="submit">Buat Tiket Manual</button>
+      <p id="manualMsg" class="muted"></p>
     </form>
-  </main>
+  </section>
 
-  <main class="panel hidden" id="dashboard">
-    <h1>Dashboard Admin</h1>
-    <p id="roleLabel" class="muted"></p>
-    <button class="btn secondary" onclick="loadDashboard()">Refresh Data</button>
-    <button class="btn secondary" onclick="logout()">Keluar</button>
+  <section id="qrisSection">
+    <h2>Pengaturan QRIS</h2>
+    <p id="qrisCurrent" class="muted">Memuat QRIS...</p>
 
-    <h2>Ringkasan Penjualan</h2>
-    <div class="summary">
-      <div class="stat">Total pesanan<strong id="totalOrders">0</strong></div>
-      <div class="stat">Tiket/paket dipesan<strong id="totalOrdered">0</strong></div>
-      <div class="stat">Terverifikasi<strong id="totalVerified">0</strong></div>
-      <div class="stat">Menunggu pembayaran<strong id="totalPending">0</strong></div>
-    </div>
+    <form id="qrisForm">
+      <label>Unggah QRIS baru (maksimal 4 MB)</label>
+      <input class="field" id="qrisFile" type="file"
+             accept="image/jpeg,image/png,image/webp" required>
 
-    <h2>Kuota dan Tahap Tiket</h2>
-    <p class="muted">Pesanan Pending tetap memesan kuota agar jumlah penjualan tidak melewati batas. Bundle memiliki kuota terpisah dari tahap tiket berurutan.</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Jenis Tiket</th><th>Harga</th><th>Kuota</th><th>Dipesan</th><th>Terverifikasi</th><th>Sisa</th><th>Status</th></tr>
-        </thead>
-        <tbody id="ticketSummary"><tr><td colspan="7">Memuat data...</td></tr></tbody>
-      </table>
-    </div>
-
-    <h2>Daftar Pesanan</h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Order ID</th><th>Nama</th><th>Jenis</th><th>Jumlah</th><th>Total</th><th>Status</th><th>Bukti</th><th>Aksi</th></tr>
-        </thead>
-        <tbody id="ordersBody"><tr><td colspan="8">Memuat data...</td></tr></tbody>
-      </table>
-    </div>
-
-    <section id="manualSection">
-      <h2>Input Tiket Manual</h2>
-      <p class="muted">Tiket manual juga menggunakan kuota yang sama dengan penjualan online.</p>
-      <form id="manualForm">
-        <label>Nama pembeli</label><input class="field" name="nama" required>
-        <label>Nomor HP (opsional)</label><input class="field" name="nohp">
-        <label>Email (opsional)</label><input class="field" name="email" type="email">
-        <label>Jenis tiket yang sedang tersedia</label>
-        <select class="field" name="jenisTiket" id="manualType" required></select>
-        <label>Jumlah tiket/paket</label>
-        <input class="field" name="jumlah" id="manualQuantity" type="number" min="1" max="20" value="1" required>
-        <button class="btn" type="submit">Buat Tiket Manual</button>
-        <p id="manualMsg" class="muted"></p>
-      </form>
-    </section>
-
-    <section id="qrisSection">
-      <h2>Pengaturan QRIS</h2>
-      <p id="qrisCurrent" class="muted">Memuat QRIS...</p>
-      <form id="qrisForm">
-        <label>Unggah QRIS baru (maksimal 4 MB)</label>
-        <input class="field" id="qrisFile" type="file" accept="image/jpeg,image/png,image/webp" required>
-        <button class="btn" type="submit">Simpan QRIS</button>
-        <p id="qrisMsg" class="muted"></p>
-      </form>
-    </section>
-  </main>
+      <button class="btn" type="submit">Simpan QRIS</button>
+      <p id="qrisMsg" class="muted"></p>
+    </form>
+  </section>
+</main>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
-let adminPin=sessionStorage.getItem('adminPin')||'';
-let adminRole=sessionStorage.getItem('adminRole')||'';
+const API = 'https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
 
-function esc(v){
-  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let adminPin = sessionStorage.getItem('adminPin') || '';
+let adminRole = sessionStorage.getItem('adminRole') || '';
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
 }
-function money(v){
-  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
+
+function money(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(Number(value) || 0);
 }
-async function post(data){
-  const r=await fetch(API,{method:'POST',body:JSON.stringify(data)});
-  return r.json();
+
+async function post(data) {
+  const response = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+  return response.json();
 }
-async function get(action,extra={}){
-  const params=new URLSearchParams({action,...extra});
-  const r=await fetch(API+'?'+params.toString());
-  return r.json();
+
+async function get(action, extra = {}) {
+  const params = new URLSearchParams({ action, ...extra });
+  const response = await fetch(API + '?' + params.toString());
+  return response.json();
 }
-function logout(){
+
+function logout() {
   sessionStorage.removeItem('adminPin');
   sessionStorage.removeItem('adminRole');
   location.reload();
 }
-function showDashboard(){
+
+function showDashboard() {
   document.getElementById('loginPanel').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
-  document.getElementById('roleLabel').textContent='Login sebagai: '+adminRole;
-  document.getElementById('manualSection').classList.toggle('hidden',!['super','tiket'].includes(adminRole));
-  document.getElementById('qrisSection').classList.toggle('hidden',adminRole!=='super');
+  document.getElementById('roleLabel').textContent =
+    'Login sebagai: ' + adminRole;
+
+  document.getElementById('manualSection').classList.toggle(
+    'hidden', !['super', 'tiket'].includes(adminRole)
+  );
+
+  document.getElementById('qrisSection').classList.toggle(
+    'hidden', adminRole !== 'super'
+  );
+
   loadDashboard();
   loadQris();
 }
 
-document.getElementById('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const msg=document.getElementById('loginMsg');
-  msg.textContent='Memeriksa PIN...';
-  try{
-    const result=await post({action:'login',pin:document.getElementById('pin').value});
-    if(!result.success)throw new Error(result.error||'Login gagal.');
-    adminPin=document.getElementById('pin').value;
-    adminRole=result.role;
-    sessionStorage.setItem('adminPin',adminPin);
-    sessionStorage.setItem('adminRole',adminRole);
+document.getElementById('loginForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const message = document.getElementById('loginMsg');
+  message.textContent = 'Memeriksa PIN...';
+
+  try {
+    const result = await post({
+      action: 'login',
+      pin: document.getElementById('pin').value
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Login gagal.');
+    }
+
+    adminPin = document.getElementById('pin').value;
+    adminRole = result.role;
+
+    sessionStorage.setItem('adminPin', adminPin);
+    sessionStorage.setItem('adminRole', adminRole);
+
     showDashboard();
-  }catch(error){msg.textContent=error.message;}
+  } catch (error) {
+    message.textContent = error.message;
+  }
 });
 
-async function loadDashboard(){
-  try{
-    const [ordersResult,statusResult]=await Promise.all([
-      get('listOrders',{pin:adminPin}),
+async function loadDashboard() {
+  try {
+    const [ordersResult, statusResult] = await Promise.all([
+      get('listOrders', { pin: adminPin }),
       get('getTicketStatus')
     ]);
-    if(!ordersResult.success)throw new Error(ordersResult.error||'Gagal memuat pesanan.');
-    if(!statusResult.success)throw new Error(statusResult.error||'Gagal memuat kuota.');
 
-    const orders=ordersResult.orders||[];
-    const types=statusResult.ticketTypes||[];
-    renderSummary(orders,types);
+    if (!ordersResult.success) {
+      throw new Error(ordersResult.error || 'Gagal memuat pesanan.');
+    }
+
+    if (!statusResult.success) {
+      throw new Error(statusResult.error || 'Gagal memuat kuota.');
+    }
+
+    const orders = ordersResult.orders || [];
+    const types = statusResult.ticketTypes || [];
+
+    renderSummary(orders, types);
     renderOrders(orders);
-    renderManualTypes(statusResult.available||[]);
-  }catch(error){
-    document.getElementById('ordersBody').innerHTML='<tr><td colspan="8">'+esc(error.message)+'</td></tr>';
+    renderManualTypes(statusResult.available || []);
+  } catch (error) {
+    document.getElementById('ordersBody').innerHTML =
+      '<tr><td colspan="8">' + esc(error.message) + '</td></tr>';
   }
 }
 
-function renderSummary(orders,types){
-  const reserved=orders.filter(o=>['Pending','Verified'].includes(o.Status));
-  const verified=orders.filter(o=>o.Status==='Verified');
-  const pending=orders.filter(o=>o.Status==='Pending');
+function renderSummary(orders, types) {
+  const reserved = orders.filter(order =>
+    ['Pending', 'Verified'].includes(order.Status)
+  );
 
-  document.getElementById('totalOrders').textContent=reserved.length;
-  document.getElementById('totalOrdered').textContent=reserved.reduce((s,o)=>s+(Number(o.Jumlah)||0),0);
-  document.getElementById('totalVerified').textContent=verified.reduce((s,o)=>s+(Number(o.Jumlah)||0),0);
-  document.getElementById('totalPending').textContent=pending.reduce((s,o)=>s+(Number(o.Jumlah)||0),0);
+  const verified = orders.filter(order => order.Status === 'Verified');
+  const pending = orders.filter(order => order.Status === 'Pending');
 
-  document.getElementById('ticketSummary').innerHTML=types.map(t=>{
+  document.getElementById('totalOrders').textContent = reserved.length;
+
+  document.getElementById('totalOrdered').textContent =
+    reserved.reduce((sum, order) => sum + (Number(order.Jumlah) || 0), 0);
+
+  document.getElementById('totalVerified').textContent =
+    verified.reduce((sum, order) => sum + (Number(order.Jumlah) || 0), 0);
+
+  document.getElementById('totalPending').textContent =
+    pending.reduce((sum, order) => sum + (Number(order.Jumlah) || 0), 0);
+
+  document.getElementById('ticketSummary').innerHTML = types.map(ticket => {
     let status;
-    if(Number(t.sisa)<=0)status='Habis';
-    else if(t.nama==='Bundle')status='Dijual terpisah';
-    else if(t.tersedia)status='Sedang dijual';
-    else status='Menunggu giliran';
 
-    return `<tr>
-      <td>${esc(t.nama)}</td>
-      <td>${money(t.harga)}</td>
-      <td>${Number(t.kuota)}</td>
-      <td>${Number(t.dipesan)}</td>
-      <td>${Number(t.terverifikasi)}</td>
-      <td>${Number(t.sisa)}</td>
-      <td><span class="status">${status}</span></td>
-    </tr>`;
+    if (Number(ticket.sisa) <= 0) {
+      status = 'Habis';
+    } else if (ticket.nama === 'Bundle') {
+      status = 'Dijual terpisah';
+    } else if (ticket.tersedia) {
+      status = 'Sedang dijual';
+    } else {
+      status = 'Menunggu tahap sebelumnya habis';
+    }
+
+    return `
+      <tr>
+        <td>${esc(ticket.nama)}</td>
+        <td>${money(ticket.harga)}</td>
+        <td>${Number(ticket.kuota)}</td>
+        <td>${Number(ticket.dipesan)}</td>
+        <td>${Number(ticket.terverifikasi)}</td>
+        <td>${Number(ticket.sisa)}</td>
+        <td><span class="status">${status}</span></td>
+      </tr>
+    `;
   }).join('');
 }
 
-function renderOrders(orders){
-  document.getElementById('ordersBody').innerHTML=orders.length
-    ?orders.slice().reverse().map(o=>{
-      const proof=o.BuktiBayarURL||o.BuktiBayar||'';
-      const link=proof&&proof!=='MANUAL'
-        ?`<a href="${esc(proof)}" target="_blank" rel="noopener">Lihat</a>`:'—';
-      const verify=['super','tiket'].includes(adminRole)&&o.Status==='Pending'
-        ?`<button class="btn" onclick="verifyOrder('${esc(o.OrderID)}')">Verifikasi</button>`:'—';
+function renderOrders(orders) {
+  document.getElementById('ordersBody').innerHTML = orders.length
+    ? orders.slice().reverse().map(order => {
+        const proof = order.BuktiBayarURL || order.BuktiBayar || '';
 
-      return `<tr>
-        <td>${esc(o.OrderID)}</td><td>${esc(o.Nama)}</td>
-        <td>${esc(o.JenisTiket)}</td><td>${esc(o.Jumlah)}</td>
-        <td>${money(o.Harga)}</td><td>${esc(o.Status)}</td>
-        <td>${link}</td><td>${verify}</td>
-      </tr>`;
-    }).join('')
-    :'<tr><td colspan="8">Belum ada pesanan.</td></tr>';
+        const proofLink = proof && proof !== 'MANUAL'
+          ? `<a href="${esc(proof)}" target="_blank" rel="noopener">Lihat</a>`
+          : '—';
+
+        const verifyButton =
+          ['super', 'tiket'].includes(adminRole) && order.Status === 'Pending'
+            ? `<button class="btn" onclick="verifyOrder('${esc(order.OrderID)}')">Verifikasi</button>`
+            : '—';
+
+        return `
+          <tr>
+            <td>${esc(order.OrderID)}</td>
+            <td>${esc(order.Nama)}</td>
+            <td>${esc(order.JenisTiket)}</td>
+            <td>${esc(order.Jumlah)}</td>
+            <td>${money(order.Harga)}</td>
+            <td>${esc(order.Status)}</td>
+            <td>${proofLink}</td>
+            <td>${verifyButton}</td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="8">Belum ada pesanan.</td></tr>';
 }
 
-function renderManualTypes(types){
-  const select=document.getElementById('manualType');
-  select.innerHTML=types.map(t=>
-    `<option value="${esc(t.nama)}">${esc(t.nama)} — ${money(t.harga)} (sisa ${t.sisa})</option>`
-  ).join('');
-  if(!types.length)select.innerHTML='<option value="">Tidak ada tiket tersedia</option>';
-  document.getElementById('manualQuantity').max=types.length?Math.min(20,Math.max(...types.map(t=>Number(t.sisa)||0))):1;
+function renderManualTypes(types) {
+  const select = document.getElementById('manualType');
+
+  select.innerHTML = types.map(ticket => `
+    <option value="${esc(ticket.nama)}">
+      ${esc(ticket.nama)} — ${money(ticket.harga)} (sisa ${ticket.sisa})
+    </option>
+  `).join('');
+
+  if (!types.length) {
+    select.innerHTML = '<option value="">Tidak ada tiket tersedia</option>';
+  }
+
+  document.getElementById('manualQuantity').max = types.length
+    ? Math.min(20, Math.max(...types.map(ticket => Number(ticket.sisa) || 0)))
+    : 1;
 }
 
-async function verifyOrder(orderId){
-  if(!confirm('Verifikasi pembayaran untuk '+orderId+'?'))return;
-  try{
-    const result=await post({action:'verify',orderId,pin:adminPin});
-    if(!result.success)throw new Error(result.error||'Verifikasi gagal.');
+async function verifyOrder(orderId) {
+  if (!confirm('Verifikasi pembayaran untuk ' + orderId + '?')) return;
+
+  try {
+    const result = await post({
+      action: 'verify',
+      orderId,
+      pin: adminPin
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Verifikasi gagal.');
+    }
+
     alert('Pembayaran berhasil diverifikasi.');
     loadDashboard();
-  }catch(error){alert(error.message);}
-}
-
-document.getElementById('manualForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const form=new FormData(e.target);
-  const data=Object.fromEntries(form.entries());
-  data.action='manual';
-  data.pin=adminPin;
-  const msg=document.getElementById('manualMsg');
-  msg.textContent='Membuat tiket...';
-
-  try{
-    const result=await post(data);
-    if(!result.success)throw new Error(result.error||'Gagal membuat tiket.');
-    msg.textContent='Berhasil. Order ID: '+result.orderId+' | Ticket ID: '+result.ticketId;
-    e.target.reset();
-    loadDashboard();
-  }catch(error){msg.textContent=error.message;}
-});
-
-async function loadQris(){
-  try{
-    const result=await get('getQris');
-    document.getElementById('qrisCurrent').innerHTML=result.success
-      ?'QRIS saat ini: <a href="'+esc(result.url)+'" target="_blank" rel="noopener">Lihat gambar</a>'
-      :esc(result.error||'QRIS belum tersedia.');
-  }catch(error){
-    document.getElementById('qrisCurrent').textContent='Gagal memuat QRIS.';
+  } catch (error) {
+    alert(error.message);
   }
 }
-function toDataUrl(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result);
-    reader.onerror=reject;
+
+document.getElementById('manualForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const data = Object.fromEntries(formData.entries());
+
+  data.action = 'manual';
+  data.pin = adminPin;
+
+  const message = document.getElementById('manualMsg');
+  message.textContent = 'Membuat tiket...';
+
+  try {
+    const result = await post(data);
+
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal membuat tiket.');
+    }
+
+    message.textContent =
+      'Berhasil. Order ID: ' + result.orderId +
+      ' | Ticket ID: ' + result.ticketId;
+
+    event.target.reset();
+    loadDashboard();
+  } catch (error) {
+    message.textContent = error.message;
+  }
+});
+
+async function loadQris() {
+  try {
+    const result = await get('getQris');
+
+    document.getElementById('qrisCurrent').innerHTML = result.success
+      ? 'QRIS saat ini: <a href="' + esc(result.url) +
+        '" target="_blank" rel="noopener">Lihat gambar</a>'
+      : esc(result.error || 'QRIS belum tersedia.');
+  } catch (error) {
+    document.getElementById('qrisCurrent').textContent =
+      'Gagal memuat QRIS.';
+  }
+}
+
+function toDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
-document.getElementById('qrisForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const file=document.getElementById('qrisFile').files[0];
-  const msg=document.getElementById('qrisMsg');
-  if(!file)return;
-  if(file.size>4*1024*1024){msg.textContent='Ukuran file maksimal 4 MB.';return;}
 
-  try{
-    const dataUrl=await toDataUrl(file);
-    const result=await post({
-      action:'setQris',
-      pin:adminPin,
-      imageBase64:dataUrl.split(',')[1],
-      imageMime:file.type
+document.getElementById('qrisForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const file = document.getElementById('qrisFile').files[0];
+  const message = document.getElementById('qrisMsg');
+
+  if (!file) return;
+
+  if (file.size > 4 * 1024 * 1024) {
+    message.textContent = 'Ukuran file maksimal 4 MB.';
+    return;
+  }
+
+  try {
+    const dataUrl = await toDataUrl(file);
+
+    const result = await post({
+      action: 'setQris',
+      pin: adminPin,
+      imageBase64: dataUrl.split(',')[1],
+      imageMime: file.type
     });
-    if(!result.success)throw new Error(result.error||'Gagal menyimpan QRIS.');
-    msg.textContent='QRIS berhasil diperbarui.';
+
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal menyimpan QRIS.');
+    }
+
+    message.textContent = 'QRIS berhasil diperbarui.';
     loadQris();
-  }catch(error){msg.textContent=error.message;}
+  } catch (error) {
+    message.textContent = error.message;
+  }
 });
 
-if(adminPin&&adminRole)showDashboard();
+if (adminPin && adminRole) {
+  showDashboard();
+}
 </script>
 </body>
 </html>
