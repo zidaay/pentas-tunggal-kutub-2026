@@ -1,29 +1,61 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pentas Tunggal KUTUB 2026</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pentas Tunggal KUTUB 2026</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body{min-height:100vh;padding:24px 14px}
+    .content{max-width:1000px;margin:auto;text-align:center}
+    h1{color:#53161f}
+    .ticket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:28px 0}
+    .ticket-card{padding:24px;border-radius:18px;background:#ffffffed;box-shadow:0 8px 24px #321c2418}
+    .ticket-card h2{color:#53161f}
+    .price{font-size:23px;font-weight:bold;color:#53161f}
+    .btn{display:inline-block;padding:12px 20px;background:#53161f;color:white;text-decoration:none;border-radius:10px}
+    .muted{color:#776970}
+  </style>
 </head>
 <body class="bg-home">
-  <div class="bubble" style="width:120px;height:120px;top:8%;left:5%;animation-duration:14s;"></div>
-  <div class="bubble" style="width:80px;height:80px;top:70%;left:85%;animation-duration:10s;"></div>
-  <div class="bubble" style="width:60px;height:60px;top:15%;left:88%;animation-duration:16s;"></div>
-  <div class="bubble" style="width:150px;height:150px;top:65%;left:8%;animation-duration:20s;"></div>
-
-  <main class="container">
-    <div class="glass-card">
-      <h1>Pentas Tunggal KUTUB 2026</h1>
-      <p>Pesan tiketmu sekarang dan jadi bagian dari malam spesial ini ✨</p>
-      <a href="pesan.html" class="glass-btn">Pesan Tiket</a>
+  <main class="content">
+    <h1>Pentas Tunggal KUTUB 2026</h1>
+    <p>Pilih jenis tiket yang tersedia dan amankan tiketmu sekarang.</p>
+    <h2>Jenis Tiket</h2>
+    <div class="ticket-grid" id="ticketGrid">
+      <p class="muted">Memuat jenis tiket...</p>
     </div>
-
-    <div class="ticket-grid">
-      <div class="glass-card ticket-card"><h3>Early Bird</h3><p class="price">Rp30.000</p><p>50 kursi pertama</p></div>
-      <div class="glass-card ticket-card"><h3>Bundling</h3><p class="price">Rp55.000</p><p>1 paket = 2 kursi</p></div>
-      <div class="glass-card ticket-card"><h3>Reguler</h3><p class="price">Rp40.000</p><p>Tiket umum online</p></div>
-    </div>
+    <p id="ticketMessage" class="muted"></p>
   </main>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(v){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);}
+async function loadTicketTypes(){
+  const grid=document.getElementById('ticketGrid');
+  try{
+    const response=await fetch(API+'?action=getTicketTypes');
+    const result=await response.json();
+    if(!result.success)throw new Error(result.error||'Gagal memuat tiket.');
+    const types=result.ticketTypes||[];
+    if(!types.length){
+      grid.innerHTML='<p class="muted">Belum ada jenis tiket yang dijual. Silakan cek kembali nanti.</p>';
+      return;
+    }
+    grid.innerHTML=types.map(t=>`
+      <article class="ticket-card">
+        <h2>${esc(t.nama)}</h2>
+        <p class="price">${money(t.harga)}</p>
+        <a class="btn" href="pesan.html?jenis=${encodeURIComponent(t.nama)}">Pesan Tiket</a>
+      </article>`).join('');
+  }catch(error){
+    grid.innerHTML='<p class="muted">Jenis tiket belum bisa dimuat. Silakan coba lagi.</p>';
+    document.getElementById('ticketMessage').textContent=error.message;
+  }
+}
+loadTicketTypes();
+</script>
 </body>
 </html>
