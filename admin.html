@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -16,7 +17,6 @@
 <body class="bg-admin">
   <div class="bubble" style="width:110px;height:110px;top:6%;left:84%;animation-duration:13s;"></div>
   <div class="bubble" style="width:80px;height:80px;top:78%;left:5%;animation-duration:17s;"></div>
-
   <main class="container">
 
     <!-- LOGIN -->
@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <!-- Daftar pesanan (semua peran) -->
+      <!-- Daftar pesanan -->
       <div class="glass-card" style="width:100%;">
         <h3>Daftar Pesanan</h3>
         <div class="toolbar">
@@ -54,12 +54,21 @@
         <div id="tableWrap" style="overflow-x:auto;"></div>
       </div>
 
-      <!-- Input tiket manual (super, tiket) -->
+      <!-- Input tiket manual -->
       <div id="manualBox" class="glass-card hidden" style="width:100%;max-width:500px;align-self:center;">
         <h3>Input Tiket Manual</h3>
         <p style="margin-top:0;">Untuk pembeli yang bayar langsung. Tiket langsung terverifikasi dan dibuatkan QR.</p>
-        <div class="form-group"><label>Nama</label><input type="text" id="mNama"></div>
-        <div class="form-group"><label>No. WhatsApp (opsional)</label><input type="text" id="mHp"></div>
+
+        <div class="form-group">
+          <label>Nama</label>
+          <input type="text" id="mNama">
+        </div>
+
+        <div class="form-group">
+          <label>No. WhatsApp (opsional)</label>
+          <input type="text" id="mHp">
+        </div>
+
         <div class="form-group">
           <label>Jenis Tiket</label>
           <select id="mJenis">
@@ -69,51 +78,72 @@
             <option value="OTS">OTS</option>
           </select>
         </div>
-        <div class="form-group"><label>Jumlah</label><input type="number" id="mJumlah" value="1" min="1"></div>
+
+        <div class="form-group">
+          <label>Jumlah</label>
+          <input type="number" id="mJumlah" value="1" min="1">
+        </div>
+
         <button id="btnManual" class="glass-btn" style="width:100%;">Buat Tiket</button>
         <div id="manualResult"></div>
       </div>
 
-      <!-- QRIS (super saja) -->
+      <!-- QRIS -->
       <div id="qrisBox" class="glass-card hidden" style="width:100%;max-width:500px;align-self:center;">
         <h3>QR Pembayaran (QRIS)</h3>
         <p style="margin-top:0;">Foto ini yang tampil di halaman pemesanan pembeli.</p>
+
         <img id="qrisPreview" alt="QRIS saat ini" style="max-width:100%;border-radius:16px;display:none;margin-bottom:1rem;">
-        <div class="form-group"><label>Upload / ganti foto QRIS</label><input type="file" id="qrisFile" accept="image/*"></div>
+
+        <div class="form-group">
+          <label>Upload / ganti foto QRIS</label>
+          <input type="file" id="qrisFile" accept="image/*">
+        </div>
+
         <button id="btnQris" class="glass-btn" style="width:100%;">Simpan QRIS</button>
         <div id="qrisResult"></div>
       </div>
-
     </div>
   </main>
 
 <script>
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec";
 
-const ROLE_LABEL = { super: 'Super Admin', tiket: 'Admin Tiket', data: 'Admin Data' };
+const ROLE_LABEL = {
+  super: 'Super Admin',
+  tiket: 'Admin Tiket',
+  data: 'Admin Data'
+};
+
 const ROLE_ACCESS = {
-  super: { verify: true,  manual: true,  qris: true,  csv: true  },
-  tiket: { verify: true,  manual: true,  qris: false, csv: false },
-  data:  { verify: false, manual: false, qris: false, csv: true  }
+  super: { verify: true, manual: true, qris: true, csv: true },
+  tiket: { verify: true, manual: true, qris: false, csv: false },
+  data: { verify: false, manual: false, qris: false, csv: true }
 };
 
 let adminPin = sessionStorage.getItem('adminPin') || '';
 let adminRole = sessionStorage.getItem('adminRole') || '';
 let allOrders = [];
 
-// Mencegah kode berbahaya dari input pembeli (misal di kolom nama) jalan di browser admin
+// Mencegah input berbahaya dijalankan sebagai HTML
 function esc(v) {
   return String(v == null ? '' : v)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function api(body) {
   const res = await fetch(APPS_SCRIPT_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
     body: JSON.stringify({ ...body, pin: adminPin })
   });
+
   return res.json();
 }
 
@@ -126,38 +156,54 @@ function fileToBase64(file) {
   });
 }
 
-function show(id, yes) { document.getElementById(id).classList.toggle('hidden', !yes); }
+function show(id, yes) {
+  document.getElementById(id).classList.toggle('hidden', !yes);
+}
 
 function showDashboard() {
   const acc = ROLE_ACCESS[adminRole];
   if (!acc) return logout();
+
   show('loginBox', false);
   show('dashboard', true);
+
   document.getElementById('roleBadge').textContent = ROLE_LABEL[adminRole];
+
   show('manualBox', acc.manual);
   show('qrisBox', acc.qris);
   show('btnCsv', acc.csv);
+
   if (acc.qris) loadCurrentQris();
 }
 
 function logout() {
   sessionStorage.removeItem('adminPin');
   sessionStorage.removeItem('adminRole');
-  adminPin = ''; adminRole = '';
+
+  adminPin = '';
+  adminRole = '';
+
   show('dashboard', false);
   show('loginBox', true);
+  document.getElementById('pinInput').value = '';
 }
 
+// ---- Login ----
 document.getElementById('btnLogin').addEventListener('click', async () => {
   const err = document.getElementById('loginError');
   err.textContent = 'Memeriksa...';
+
   adminPin = document.getElementById('pinInput').value;
+
   try {
     const data = await api({ action: 'login' });
+
     if (data.success) {
       adminRole = data.role;
+
       sessionStorage.setItem('adminPin', adminPin);
       sessionStorage.setItem('adminRole', adminRole);
+
       err.textContent = '';
       showDashboard();
     } else {
@@ -169,21 +215,33 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     err.textContent = 'Gagal terhubung ke server: ' + e;
   }
 });
-document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnLogin').click(); });
+
+document.getElementById('pinInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    document.getElementById('btnLogin').click();
+  }
+});
+
 document.getElementById('btnLogout').addEventListener('click', logout);
 
-// ---- Pesanan ----
+// ---- Daftar pesanan ----
 async function loadOrders() {
   const wrap = document.getElementById('tableWrap');
   wrap.innerHTML = '<p>Memuat...</p>';
+
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=listOrders&pin=${encodeURIComponent(adminPin)}`);
+    const res = await fetch(
+      `${APPS_SCRIPT_URL}?action=listOrders&pin=${encodeURIComponent(adminPin)}`
+    );
+
     const data = await res.json();
+
     if (data.error) {
       wrap.innerHTML = `<p>${esc(data.error)}</p>`;
       if (data.error === 'PIN salah') logout();
       return;
     }
+
     allOrders = data.orders || [];
     renderTable();
   } catch (e) {
@@ -195,35 +253,80 @@ function renderTable() {
   const wrap = document.getElementById('tableWrap');
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const acc = ROLE_ACCESS[adminRole];
-  const rows = allOrders.filter(o => !q || Object.values(o).join(' ').toLowerCase().includes(q));
-  if (rows.length === 0) { wrap.innerHTML = '<p>Tidak ada pesanan.</p>'; return; }
 
-  let html = `<table class="admin-table"><tr>
-    <th>Order ID</th><th>Nama</th><th>No. HP</th><th>Tiket</th><th>Jml</th><th>Bukti</th><th>Status</th><th>Digunakan</th>${acc.verify ? '<th>Aksi</th>' : ''}
-  </tr>`;
+  const rows = allOrders.filter(o =>
+    !q || Object.values(o).join(' ').toLowerCase().includes(q)
+  );
+
+  if (rows.length === 0) {
+    wrap.innerHTML = '<p>Tidak ada pesanan.</p>';
+    return;
+  }
+
+  let html = `<table class="admin-table">
+    <tr>
+      <th>Order ID</th>
+      <th>Nama</th>
+      <th>No. HP</th>
+      <th>Tiket</th>
+      <th>Jml</th>
+      <th>Bukti</th>
+      <th>Status</th>
+      <th>Digunakan</th>
+      ${acc.verify ? '<th>Aksi</th>' : ''}
+    </tr>`;
+
   rows.forEach(o => {
     const bukti = String(o.BuktiBayarURL || '').startsWith('http')
-      ? `<a href="${esc(o.BuktiBayarURL)}" target="_blank" rel="noopener">Lihat</a>` : esc(o.BuktiBayarURL || '-');
+      ? `<a href="${esc(o.BuktiBayarURL)}" target="_blank" rel="noopener">Lihat</a>`
+      : esc(o.BuktiBayarURL || '-');
+
     const aksi = acc.verify
-      ? `<td>${o.Status === 'Pending' ? `<button class="glass-btn" style="padding:.4rem 1rem;" data-verify="${esc(o.OrderID)}">Verifikasi</button>` : '✅'}</td>` : '';
+      ? `<td>${
+          o.Status === 'Pending'
+            ? `<button class="glass-btn" style="padding:.4rem 1rem;" data-verify="${esc(o.OrderID)}">Verifikasi</button>`
+            : '✅'
+        }</td>`
+      : '';
+
     html += `<tr>
-      <td>${esc(o.OrderID)}</td><td>${esc(o.Nama)}</td><td>${esc(o.NoHP)}</td><td>${esc(o.JenisTiket)}</td><td>${esc(o.Jumlah)}</td>
+      <td>${esc(o.OrderID)}</td>
+      <td>${esc(o.Nama)}</td>
+      <td>${esc(o.NoHP)}</td>
+      <td>${esc(o.JenisTiket)}</td>
+      <td>${esc(o.Jumlah)}</td>
       <td>${bukti}</td>
-      <td>${esc(o.Status)}${o.Status === 'Verified' ? ' (' + esc(o.TicketID) + ')' : ''}</td>
-      <td>${esc(o.Digunakan)}</td>${aksi}
+      <td>${esc(o.Status)}${
+        o.Status === 'Verified' ? ' (' + esc(o.TicketID) + ')' : ''
+      }</td>
+      <td>${esc(o.Digunakan)}</td>
+      ${aksi}
     </tr>`;
   });
+
   html += '</table>';
   wrap.innerHTML = html;
 }
 
-document.getElementById('tableWrap').addEventListener('click', async (e) => {
+document.getElementById('tableWrap').addEventListener('click', async e => {
   const id = e.target.getAttribute('data-verify');
   if (!id) return;
-  if (!confirm('Verifikasi pesanan ' + id + '? Pastikan bukti bayar sudah dicek.')) return;
-  const data = await api({ action: 'verify', orderId: id });
-  if (data.success) { alert('Terverifikasi! Ticket ID: ' + data.ticketId); loadOrders(); }
-  else alert('Gagal: ' + (data.error || 'tidak diketahui'));
+
+  if (!confirm('Verifikasi pesanan ' + id + '? Pastikan bukti bayar sudah dicek.')) {
+    return;
+  }
+
+  const data = await api({
+    action: 'verify',
+    orderId: id
+  });
+
+  if (data.success) {
+    alert('Terverifikasi! Ticket ID: ' + data.ticketId);
+    loadOrders();
+  } else {
+    alert('Gagal: ' + (data.error || 'tidak diketahui'));
+  }
 });
 
 document.getElementById('btnLoad').addEventListener('click', loadOrders);
@@ -231,39 +334,72 @@ document.getElementById('searchInput').addEventListener('input', renderTable);
 
 // ---- Export CSV ----
 document.getElementById('btnCsv').addEventListener('click', () => {
-  if (allOrders.length === 0) { alert('Muat daftar pesanan dulu.'); return; }
+  if (allOrders.length === 0) {
+    alert('Muat daftar pesanan dulu.');
+    return;
+  }
+
   const headers = Object.keys(allOrders[0]);
+
   const cell = v => {
     let s = String(v == null ? '' : v);
-    if (/^[=+\-@]/.test(s)) s = "'" + s; // cegah formula berbahaya di Excel/Sheets
+
+    // Mencegah formula berbahaya di Excel/Sheets
+    if (/^[=+\-@]/.test(s)) s = "'" + s;
+
     return '"' + s.replace(/"/g, '""') + '"';
   };
-  const csv = [headers.map(cell).join(',')].concat(allOrders.map(o => headers.map(h => cell(o[h])).join(','))).join('\n');
+
+  const csv = [
+    headers.map(cell).join(',')
+  ].concat(
+    allOrders.map(o => headers.map(h => cell(o[h])).join(','))
+  ).join('\n');
+
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.href = URL.createObjectURL(
+    new Blob([csv], { type: 'text/csv' })
+  );
   a.download = 'pesanan-kutub-2026.csv';
   a.click();
+
+  URL.revokeObjectURL(a.href);
 });
 
 // ---- Input tiket manual ----
 document.getElementById('btnManual').addEventListener('click', async () => {
   const out = document.getElementById('manualResult');
   out.innerHTML = '<p>Membuat tiket...</p>';
-  const data = await api({
-    action: 'manual',
-    nama: document.getElementById('mNama').value.trim(),
-    nohp: document.getElementById('mHp').value.trim(),
-    jenisTiket: document.getElementById('mJenis').value,
-    jumlah: document.getElementById('mJumlah').value
-  });
-  if (data.success) {
-    out.innerHTML = `<div class="status-msg status-ok">Tiket dibuat!<br>Ticket ID: <b>${esc(data.ticketId)}</b><br>
-      <img src="${esc(data.qrUrl)}" alt="QR Tiket" style="margin-top:1rem;border-radius:12px;"></div>`;
-    document.getElementById('mNama').value = '';
-    document.getElementById('mHp').value = '';
-    loadOrders();
-  } else {
-    out.innerHTML = `<div class="status-msg status-err">${esc(data.error || 'Gagal')}</div>`;
+
+  try {
+    const data = await api({
+      action: 'manual',
+      nama: document.getElementById('mNama').value.trim(),
+      nohp: document.getElementById('mHp').value.trim(),
+      jenisTiket: document.getElementById('mJenis').value,
+      jumlah: document.getElementById('mJumlah').value
+    });
+
+    if (data.success) {
+      out.innerHTML = `<div class="status-msg status-ok">
+        Tiket dibuat!<br>
+        Ticket ID: <b>${esc(data.ticketId)}</b><br>
+        <img src="${esc(data.qrUrl)}" alt="QR Tiket"
+             style="margin-top:1rem;border-radius:12px;">
+      </div>`;
+
+      document.getElementById('mNama').value = '';
+      document.getElementById('mHp').value = '';
+      loadOrders();
+    } else {
+      out.innerHTML = `<div class="status-msg status-err">
+        ${esc(data.error || 'Gagal')}
+      </div>`;
+    }
+  } catch (e) {
+    out.innerHTML = `<div class="status-msg status-err">
+      Gagal terhubung: ${esc(e)}
+    </div>`;
   }
 });
 
@@ -272,29 +408,54 @@ async function loadCurrentQris() {
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?action=getQris`);
     const d = await res.json();
+
     if (d.url) {
       const img = document.getElementById('qrisPreview');
-      img.src = d.url; img.style.display = 'block';
+      img.src = d.url;
+      img.style.display = 'block';
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Gagal memuat QRIS:', e);
+  }
 }
 
 document.getElementById('btnQris').addEventListener('click', async () => {
   const out = document.getElementById('qrisResult');
   const file = document.getElementById('qrisFile').files[0];
-  if (!file) { out.innerHTML = '<div class="status-msg status-err">Pilih foto dulu.</div>'; return; }
+
+  if (!file) {
+    out.innerHTML = '<div class="status-msg status-err">Pilih foto dulu.</div>';
+    return;
+  }
+
   out.innerHTML = '<p>Mengunggah...</p>';
-  const data = await api({ action: 'setQris', imageBase64: await fileToBase64(file), imageMime: file.type });
-  if (data.success) {
-    out.innerHTML = '<div class="status-msg status-ok">QRIS berhasil diganti ✅</div>';
-    loadCurrentQris();
-  } else {
-    out.innerHTML = `<div class="status-msg status-err">${esc(data.error || 'Gagal')}</div>`;
+
+  try {
+    const data = await api({
+      action: 'setQris',
+      imageBase64: await fileToBase64(file),
+      imageMime: file.type
+    });
+
+    if (data.success) {
+      out.innerHTML = '<div class="status-msg status-ok">QRIS berhasil diganti ✅</div>';
+      loadCurrentQris();
+    } else {
+      out.innerHTML = `<div class="status-msg status-err">
+        ${esc(data.error || 'Gagal')}
+      </div>`;
+    }
+  } catch (e) {
+    out.innerHTML = `<div class="status-msg status-err">
+      Gagal mengunggah: ${esc(e)}
+    </div>`;
   }
 });
 
 // Kalau sudah login di sesi ini
-if (adminPin && adminRole) showDashboard();
+if (adminPin && adminRole) {
+  showDashboard();
+}
 </script>
 </body>
 </html>
