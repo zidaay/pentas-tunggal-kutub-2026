@@ -8,54 +8,80 @@
   <link rel="stylesheet" href="style.css">
   <style>
     body{min-height:100vh;padding:24px 14px}
-    .content{max-width:1000px;margin:auto;text-align:center}
-    h1{color:#53161f}
-    .ticket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:28px 0}
+    .content{max-width:1050px;margin:auto;text-align:center}
+    h1,h2{color:#53161f}
+    .ticket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin:28px 0}
     .ticket-card{padding:24px;border-radius:18px;background:#ffffffed;box-shadow:0 8px 24px #321c2418}
-    .ticket-card h2{color:#53161f}
-    .price{font-size:23px;font-weight:bold;color:#53161f}
+    .ticket-card h2{margin-top:0}
+    .price{font-size:24px;font-weight:bold;color:#53161f}
+    .stock{color:#776970;font-size:14px}
     .btn{display:inline-block;padding:12px 20px;background:#53161f;color:white;text-decoration:none;border-radius:10px}
+    .btn.disabled{background:#aaa;pointer-events:none}
+    .bundle{border:2px solid #c69a59}
+    .badge{display:inline-block;background:#f8e7eb;color:#53161f;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:bold}
+    .bundle .badge{background:#fff0dc;color:#87531d}
     .muted{color:#776970}
   </style>
 </head>
 <body class="bg-home">
   <main class="content">
     <h1>Pentas Tunggal KUTUB 2026</h1>
-    <p>Pilih jenis tiket yang tersedia dan amankan tiketmu sekarang.</p>
-    <h2>Jenis Tiket</h2>
+    <p>Pilih tiketmu sebelum kuota habis!</p>
+
+    <h2>Tiket yang Sedang Dijual</h2>
+    <p class="muted">Tahap tiket reguler berurutan. Bundle dijual terpisah dari tahap tersebut.</p>
+
     <div class="ticket-grid" id="ticketGrid">
-      <p class="muted">Memuat jenis tiket...</p>
+      <p class="muted">Memuat ketersediaan tiket...</p>
     </div>
-    <p id="ticketMessage" class="muted"></p>
+    <p class="muted" id="statusMessage"></p>
   </main>
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec';
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function money(v){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);}
-async function loadTicketTypes(){
+
+function esc(v){
+  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function money(v){
+  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
+}
+async function loadTickets(){
   const grid=document.getElementById('ticketGrid');
+  const message=document.getElementById('statusMessage');
+
   try{
-    const response=await fetch(API+'?action=getTicketTypes');
+    const response=await fetch(API+'?action=getTicketStatus');
     const result=await response.json();
     if(!result.success)throw new Error(result.error||'Gagal memuat tiket.');
-    const types=result.ticketTypes||[];
-    if(!types.length){
-      grid.innerHTML='<p class="muted">Belum ada jenis tiket yang dijual. Silakan cek kembali nanti.</p>';
+
+    const available=result.available||[];
+    if(!available.length){
+      grid.innerHTML='<article class="ticket-card"><h2>Semua Tiket Habis</h2><p>Terima kasih atas antusiasmenya!</p></article>';
+      message.textContent='Saat ini tidak ada tiket yang tersedia.';
       return;
     }
-    grid.innerHTML=types.map(t=>`
-      <article class="ticket-card">
+
+    grid.innerHTML=available.map(t=>{
+      const isBundle=t.nama==='Bundle';
+      const stock=Number(t.sisa)||0;
+      return `<article class="ticket-card ${isBundle?'bundle':''}">
+        <span class="badge">${isBundle?'TIKET BUNDLE':'TAHAP TIKET'}</span>
         <h2>${esc(t.nama)}</h2>
         <p class="price">${money(t.harga)}</p>
-        <a class="btn" href="pesan.html?jenis=${encodeURIComponent(t.nama)}">Pesan Tiket</a>
-      </article>`).join('');
+        <p class="stock">Sisa kuota: <strong>${stock}</strong> dari ${Number(t.kuota)||0} ${isBundle?'paket':'kursi'}</p>
+        <p class="stock">Sudah dipesan: ${Number(t.dipesan)||0}</p>
+        <a class="btn" href="pesan.html?jenis=${encodeURIComponent(t.nama)}">Pesan Sekarang</a>
+      </article>`;
+    }).join('');
+
+    message.textContent='Ketersediaan tiket diperbarui saat halaman dimuat.';
   }catch(error){
-    grid.innerHTML='<p class="muted">Jenis tiket belum bisa dimuat. Silakan coba lagi.</p>';
-    document.getElementById('ticketMessage').textContent=error.message;
+    grid.innerHTML='<p class="muted">Ketersediaan tiket belum bisa dimuat. Silakan refresh halaman.</p>';
+    message.textContent=error.message;
   }
 }
-loadTicketTypes();
+loadTickets();
 </script>
 </body>
 </html>
