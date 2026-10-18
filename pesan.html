@@ -7,7 +7,388 @@
   <title>Pesan Tiket - KUTUB 2026</title>
   <link rel="stylesheet" href="style.css">
 </head>
+<body class="bg-pesana
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pesan Tiket - KUTUB 2026</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .qris-box {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .qris-box h3 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    #qrisImg {
+      display: none;
+      width: 100%;
+      max-width: 320px;
+      max-height: 420px;
+      object-fit: contain;
+      margin: 0 auto;
+      padding: 8px;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    #qrisInfo {
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    #qrisRetry {
+      display: none;
+      margin: 0.8rem auto;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #orderStatus {
+      margin-top: 1rem;
+      overflow-wrap: anywhere;
+    }
+
+    #btnSubmit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
 <body class="bg-pesan">
+  <div class="bubble"
+       style="width:100px;height:100px;top:10%;left:80%;animation-duration:12s;"></div>
+
+  <div class="bubble"
+       style="width:70px;height:70px;top:75%;left:6%;animation-duration:15s;"></div>
+
+  <div class="bubble"
+       style="width:130px;height:130px;top:40%;left:-3%;animation-duration:19s;"></div>
+
+  <main class="container">
+    <div class="glass-card" style="width:100%;max-width:500px;">
+      <h2>Form Pemesanan Tiket</h2>
+
+      <!-- QRIS PEMBAYARAN -->
+      <div id="qrisBox" class="qris-box">
+        <h3>Scan untuk Bayar (QRIS)</h3>
+
+        <img
+          id="qrisImg"
+          alt="QRIS pembayaran tiket KUTUB 2026"
+        >
+
+        <p id="qrisInfo" aria-live="polite">
+          Memuat QRIS...
+        </p>
+
+        <button
+          type="button"
+          id="qrisRetry"
+          onclick="loadQris()"
+        >
+          Muat Ulang QRIS
+        </button>
+      </div>
+
+      <!-- FORM PEMESANAN -->
+      <form id="orderForm">
+        <div class="form-group">
+          <label for="nama">Nama Lengkap</label>
+          <input
+            type="text"
+            id="nama"
+            name="nama"
+            autocomplete="name"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="nohp">No. WhatsApp</label>
+          <input
+            type="tel"
+            id="nohp"
+            name="nohp"
+            autocomplete="tel"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="jenisTiket">Jenis Tiket</label>
+          <select id="jenisTiket" name="jenisTiket" required>
+            <option value="Early Bird">Early Bird - Rp30.000</option>
+            <option value="Bundling">Bundling - Rp55.000/paket (2 kursi)</option>
+            <option value="Reguler">Reguler - Rp40.000</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="jumlah">Jumlah</label>
+          <input
+            type="number"
+            id="jumlah"
+            name="jumlah"
+            value="1"
+            min="1"
+            max="20"
+            step="1"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="bukti">Upload Bukti Bayar QRIS</label>
+          <input
+            type="file"
+            id="bukti"
+            name="bukti"
+            accept="image/jpeg,image/png,image/webp"
+            required
+          >
+          <small>Format JPG, PNG, atau WEBP. Maksimal 4 MB.</small>
+        </div>
+
+        <button
+          type="submit"
+          id="btnSubmit"
+          class="glass-btn"
+          style="width:100%;"
+        >
+          Kirim Pesanan
+        </button>
+      </form>
+
+      <div id="orderStatus" aria-live="polite"></div>
+    </div>
+  </main>
+
+  <script>
+    const APPS_SCRIPT_URL =
+      "https://script.google.com/macros/s/AKfycbzSA37cDKyVluKWG-rbzTR5IkfhLDfTLAkxCO_2KvX31vS7g1QUTZVu_EIiGzW37tLT/exec";
+
+    function esc(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          resolve(reader.result.split(",")[1]);
+        };
+
+        reader.onerror = () => {
+          reject(new Error("Bukti pembayaran gagal dibaca."));
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // MEMUAT QRIS DARI GOOGLE DRIVE MELALUI APPS SCRIPT
+    async function loadQris() {
+      const img = document.getElementById("qrisImg");
+      const info = document.getElementById("qrisInfo");
+      const retry = document.getElementById("qrisRetry");
+
+      img.style.display = "none";
+      retry.style.display = "none";
+      info.textContent = "Memuat QRIS...";
+
+      try {
+        const response = await fetch(
+          APPS_SCRIPT_URL + "?action=getQris"
+        );
+
+        if (!response.ok) {
+          throw new Error("Server QRIS tidak dapat dihubungi.");
+        }
+
+        const data = await response.json();
+
+        if (!data.url) {
+          throw new Error(data.error || "QRIS belum tersedia.");
+        }
+
+        const url = new URL(data.url);
+
+        if (!["https:", "http:"].includes(url.protocol)) {
+          throw new Error("URL QRIS tidak valid.");
+        }
+
+        img.onload = () => {
+          img.style.display = "block";
+          info.textContent =
+            "Scan QRIS untuk membayar sesuai total pesanan, lalu upload bukti pembayaran.";
+        };
+
+        img.onerror = () => {
+          img.style.display = "none";
+          info.textContent =
+            "QRIS gagal ditampilkan. Periksa izin akses file Google Drive.";
+          retry.style.display = "inline-block";
+        };
+
+        img.src = url.href;
+
+      } catch (error) {
+        info.textContent =
+          error.message || "QRIS gagal dimuat.";
+        retry.style.display = "inline-block";
+        console.error("Gagal memuat QRIS:", error);
+      }
+    }
+
+    // MEMUAT QRIS SAAT HALAMAN DIBUKA
+    document.addEventListener("DOMContentLoaded", loadQris);
+
+    // MENGIRIM PESANAN
+    document.getElementById("orderForm").addEventListener(
+      "submit",
+      async function(event) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const statusDiv = document.getElementById("orderStatus");
+        const button = document.getElementById("btnSubmit");
+        const buktiFile = document.getElementById("bukti").files[0];
+
+        const nama = document.getElementById("nama").value.trim();
+        const nohp = document.getElementById("nohp").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const jenisTiket =
+          document.getElementById("jenisTiket").value;
+        const jumlah = Number(
+          document.getElementById("jumlah").value
+        );
+
+        if (!Number.isInteger(jumlah) || jumlah < 1 || jumlah > 20) {
+          statusDiv.textContent =
+            "Jumlah tiket harus antara 1 sampai 20.";
+          return;
+        }
+
+        if (!buktiFile) {
+          statusDiv.textContent =
+            "Upload bukti pembayaran terlebih dahulu.";
+          return;
+        }
+
+        if (!/^image\/(jpeg|png|webp)$/.test(buktiFile.type)) {
+          statusDiv.textContent =
+            "Bukti pembayaran harus berupa JPG, PNG, atau WEBP.";
+          return;
+        }
+
+        if (buktiFile.size > 4 * 1024 * 1024) {
+          statusDiv.textContent =
+            "Ukuran bukti pembayaran maksimal 4 MB.";
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Mengirim Pesanan...";
+        statusDiv.textContent = "Mengirim pesanan, mohon tunggu...";
+
+        try {
+          const buktiBase64 = await fileToBase64(buktiFile);
+
+          const payload = {
+            action: "order",
+            nama: nama,
+            nohp: nohp,
+            email: email,
+            jenisTiket: jenisTiket,
+            jumlah: jumlah,
+            buktiBase64: buktiBase64,
+            buktiMime: buktiFile.type
+          };
+
+          const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            throw new Error("Gagal menghubungi server.");
+          }
+
+          const data = await response.json();
+
+          if (!data.success || !data.orderId) {
+            throw new Error(
+              data.error || "Pesanan gagal disimpan."
+            );
+          }
+
+          statusDiv.innerHTML = `
+            <div class="status-msg status-ok">
+              Pesanan berhasil dikirim!
+              <br>
+              Order ID: <b>${esc(data.orderId)}</b>
+              <br>
+              Mengalihkan ke halaman tiket...
+            </div>
+          `;
+
+          form.reset();
+
+          window.location.href =
+            "tiket.html?orderId=" +
+            encodeURIComponent(data.orderId);
+
+        } catch (error) {
+          statusDiv.innerHTML = `
+            <div class="status-msg status-err">
+              Gagal mengirim pesanan:
+              ${esc(error.message || error)}
+            </div>
+          `;
+
+          button.disabled = false;
+          button.textContent = "Kirim Pesanan";
+        }
+      }
+    );
+  </script>
+</body>
+</html>
+
   <div class="bubble" style="width:100px;height:100px;top:10%;left:80%;animation-duration:12s;"></div>
   <div class="bubble" style="width:70px;height:70px;top:75%;left:6%;animation-duration:15s;"></div>
   <div class="bubble" style="width:130px;height:130px;top:40%;left:-3%;animation-duration:19s;"></div>
